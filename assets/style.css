@@ -1,0 +1,327 @@
+/* 2000 Blog - 复古朴素风格 */
+
+body {
+    font-family: "宋体", "SimSun", "New Roman", serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #333;
+    background: #e0e0e0 url("bg.jpg") repeat;
+    margin: 0;
+    padding: 20px;
+}
+
+a {
+    color: #0000cc;
+    text-decoration: underline;
+}
+
+a:hover {
+    color: #cc0000;
+    text-decoration: underline;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    border: 1px solid #999;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.header {
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.header h1 {
+    margin: 0 0 5px 0;
+    font-size: 24px;
+}
+
+.header h1 a {
+    color: #000;
+    text-decoration: none;
+}
+
+.header .desc {
+    margin: 0 0 8px 0;
+    color: #666;
+    font-size: 13px;
+}
+
+.nav {
+    font-size: 13px;
+    padding-top: 5px;
+}
+
+.main {
+    float: left;
+    width: 65%;
+}
+
+.sidebar {
+    float: right;
+    width: 32%;
+    border-left: 1px dashed #ccc;
+    padding-left: 10px;
+}
+
+.sidebar .box {
+    margin-bottom: 15px;
+    border-bottom: 1px dashed #ccc;
+    padding-bottom: 10px;
+}
+
+.sidebar .box h3 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    border-bottom: 1px solid #999;
+    padding-bottom: 3px;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar li {
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.clear {
+    clear: both;
+}
+
+.footer {
+    border-top: 1px solid #999;
+    margin-top: 15px;
+    padding-top: 10px;
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+}
+
+/* 文章列表 */
+.post-list {
+    margin-bottom: 20px;
+}
+
+.post-item {
+    border-bottom: 1px dashed #ccc;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.post-item h2 {
+    margin: 0 0 5px 0;
+    font-size: 16px;
+}
+
+.post-item h2 a {
+    color: #0000cc;
+}
+
+.post-meta {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.post-summary {
+    font-size: 14px;
+}
+
+/* 文章详情 */
+.post-content {
+    margin-bottom: 20px;
+}
+
+.post-content h1 {
+    font-size: 18px;
+    margin: 0 0 10px 0;
+    border-bottom: 1px solid #999;
+    padding-bottom: 5px;
+}
+
+.post-content .content {
+    line-height: 1.8;
+}
+
+.post-content .content p {
+    margin: 0 0 10px 0;
+}
+
+/* 评论 */
+.comment-list {
+    margin-top: 20px;
+    border-top: 1px solid #999;
+    padding-top: 10px;
+}
+
+.comment-list h3 {
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
+.comment-item {
+    border-bottom: 1px dashed #ccc;
+    padding: 8px 0;
+}
+
+.comment-item .comment-meta {
+    font-size: 12px;
+    color: #666;
+}
+
+.comment-item .comment-content {
+    margin-top: 5px;
+}
+
+.comment-form {
+    margin-top: 15px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    background: #f9f9f9;
+}
+
+.comment-form label {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 3px;
+}
+
+.comment-form input[type="text"],
+.comment-form input[type="email"],
+.comment-form textarea {
+    width: 90%;
+    border: 1px solid #999;
+    padding: 3px;
+    font-family: inherit;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.comment-form textarea {
+    height: 80px;
+}
+
+/* 按钮 */
+button, input[type="submit"] {
+    border: 1px solid #999;
+    background: #eee;
+    padding: 3px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+button:hover, input[type="submit"]:hover {
+    background: #ddd;
+}
+
+/* 分页 */
+.pagination {
+    margin: 15px 0;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* 标签 */
+.tag-list {
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+/* 管理后台 */
+.admin-login {
+    max-width: 400px;
+    margin: 50px auto;
+    border: 1px solid #999;
+    padding: 20px;
+}
+
+.admin-login h2 {
+    margin-top: 0;
+    border-bottom: 1px solid #999;
+    padding-bottom: 5px;
+}
+
+.admin-nav {
+    background: #eee;
+    border: 1px solid #999;
+    padding: 8px 10px;
+    margin-bottom: 15px;
+    font-size: 13px;
+}
+
+.admin-nav a {
+    margin-right: 12px;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.admin-table th, .admin-table td {
+    border: 1px solid #999;
+    padding: 5px 8px;
+    text-align: left;
+}
+
+.admin-table th {
+    background: #eee;
+}
+
+.admin-form label {
+    display: block;
+    font-size: 13px;
+    margin: 10px 0 3px 0;
+}
+
+.admin-form input[type="text"],
+.admin-form input[type="password"],
+.admin-form textarea,
+.admin-form select {
+    width: 100%;
+    max-width: 500px;
+    border: 1px solid #999;
+    padding: 4px;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.admin-form textarea {
+    height: 300px;
+}
+
+.msg {
+    border: 1px solid #999;
+    padding: 8px 10px;
+    margin-bottom: 15px;
+    font-size: 13px;
+}
+
+.msg.success {
+    background: #e8f5e9;
+    border-color: #4caf50;
+}
+
+.msg.error {
+    background: #ffebee;
+    border-color: #f44336;
+}
+
+/* 响应式 */
+@media (max-width: 600px) {
+    .main, .sidebar {
+        float: none;
+        width: 100%;
+        border-left: none;
+        padding-left: 0;
+    }
+}
