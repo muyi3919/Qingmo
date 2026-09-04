@@ -2,8 +2,15 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.1.1-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.1.1
+
+- ✅ **修复 PHP 8.2 兼容性**：`QmSmtp` 显式声明 `lastReply` 属性，消除“Creation of dynamic property”弃用警告（保存/发送 SMTP 邮件时不再出现 Deprecated 提示）
+- ✅ 顺手加固：SMTP 连接失败后不再继续发送命令（返回明确错误）
 
 ---
 

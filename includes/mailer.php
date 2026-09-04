@@ -16,6 +16,7 @@ class QmSmtp {
     private $timeout;
     private $conn = null;
     public $lastError = '';
+    public $lastReply = '';
 
     public function __construct($host, $port = 587, $secure = 'tls', $user = '', $pass = '', $timeout = 15) {
         $this->host = $host;
@@ -45,7 +46,12 @@ class QmSmtp {
     }
 
     private function send($data) {
+        if (!is_resource($this->conn)) {
+            $this->lastError = 'SMTP 连接不可用，无法发送命令';
+            return false;
+        }
         fwrite($this->conn, $data . "\r\n");
+        return true;
     }
 
     public function connect() {
@@ -88,6 +94,10 @@ class QmSmtp {
     }
 
     public function login() {
+        if (!is_resource($this->conn)) {
+            $this->lastError = 'SMTP 尚未连接，无法登录';
+            return false;
+        }
         if ($this->user === '') return true; // 无需认证
         $this->send('AUTH LOGIN');
         if ($this->readReply(334) === false) return false;
