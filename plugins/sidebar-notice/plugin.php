@@ -1,15 +1,25 @@
 <?php
 /**
  * 插件：侧栏公告
- * 演示动作钩子：do_action('qm_sidebar')（位于侧边栏所有小部件之后）
+ * 演示：动作钩子 do_action('qm_sidebar') + 自带后台设置页（admin.php）
+ * 公告内容通过 插件市场 → 设置 填写，保存在 data/plugin_sidebar_notice.php。
  */
 if (!defined('QM_BOOT')) { exit('Access denied'); }
 
-$notice_text = '这是侧栏公告插件的示例内容，可在此修改公告文字。';
+function qm_notice_get($key, $default = '') {
+    $data = load_data(DATA_DIR . '/plugin_sidebar_notice.php', []);
+    return $data[$key] ?? $default;
+}
 
-add_action('qm_sidebar', function () use ($notice_text) {
+function qm_notice_set($data) {
+    save_data(DATA_DIR . '/plugin_sidebar_notice.php', $data);
+}
+
+add_action('qm_sidebar', function () {
+    $text = trim((string)qm_notice_get('text', ''));
+    if ($text === '') return; // 未填写则不显示
     echo '<div class="box qm-plugin-notice">'
         . '<h3>公告</h3>'
-        . '<p style="font-size:13px;">' . e($notice_text) . '</p>'
+        . '<p style="font-size:13px;">' . nl2br(e($text)) . '</p>'
         . '</div>';
 });

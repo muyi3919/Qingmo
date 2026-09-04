@@ -48,7 +48,9 @@ include __DIR__ . '/_header.php';
 <?php else: ?>
     <table class="admin-table">
         <tr><th>插件</th><th>说明</th><th>版本</th><th>作者</th><th>状态 / 操作</th></tr>
-        <?php foreach ($plugins as $p): ?>
+        <?php foreach ($plugins as $p):
+            $hasSettings = file_exists(PLUGINS_DIR . '/' . $p['slug'] . '/admin.php');
+        ?>
         <tr>
             <td><strong><?php echo e($p['name']); ?></strong></td>
             <td><?php echo e($p['description']); ?></td>
@@ -62,6 +64,9 @@ include __DIR__ . '/_header.php';
                     <span style="color:#999;">未启用</span> |
                     <a href="index.php?page=plugins&toggle=<?php echo e($p['slug']); ?>&token=<?php echo $token; ?>">启用</a>
                 <?php endif; ?>
+                <?php if ($hasSettings): ?>
+                    | <a href="plugin-settings.php?slug=<?php echo urlencode($p['slug']); ?>">设置</a>
+                <?php endif; ?>
             </td>
         </tr>
         <?php endforeach; ?>
@@ -70,7 +75,8 @@ include __DIR__ . '/_header.php';
     <p style="font-size:13px;color:#666;">
         安装新插件：将插件文件夹（含 <code>plugin.json</code> 与 <code>plugin.php</code>）放入站点根目录
         <code>plugins/</code> 下即可在此页启用。插件可在 <code>plugin.php</code> 中通过
-        <code>add_action()</code> / <code>add_filter()</code> 扩展系统。
+        <code>add_action()</code> / <code>add_filter()</code> 扩展系统；
+        若插件自带 <code>admin.php</code>，启用后「设置」一列会提供独立的设置页面。
     </p>
 <?php endif; ?>
 

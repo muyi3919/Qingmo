@@ -1,6 +1,6 @@
 {
     "name": "页脚备案信息",
-    "description": "在页脚下方输出一行自定义文字（适合放 ICP 备案号 / 版权声明），演示动作钩子 do_action('qm_footer')。",
-    "version": "1.0.0",
+    "description": "在页脚下方输出自定义文字（备案号 / 版权声明等）。启用后在插件市场点「设置」即可填写内容。",
+    "version": "1.1.0",
     "author": "Qingmo"
 }

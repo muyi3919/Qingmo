@@ -2,8 +2,16 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.1
+
+- ✅ **插件设置页**：启用状态的插件若自带 `admin.php`，插件市场会提供「设置」入口并拥有独立设置页（表单/保存由插件负责）
+- ✅ **页脚备案 / 侧栏公告支持后台填写**：备案号、公告内容不再需要改代码，直接在插件「设置」里填写
+- ✅ **文章置顶插件**：`plugins/qingmo-sticky`，后台一键置顶/取消，置顶文章排到列表最前（核心新增 `qm_posts_list` / `qm_post_row_actions` / `qm_admin_posts_head` 三个扩展点）
 
 ---
 
@@ -93,9 +101,10 @@ v2.0 主要更新（均已实现并可用，状态以「✅」标注）：
 │       ├── theme.php
 │       └── style.css
 ├── plugins/               # 插件目录（每个子目录一个插件）
-│   ├── footer-beian/      # 示例：页脚备案信息（动作钩子）
+│   ├── footer-beian/      # 页脚备案信息（后台可填写文案，含 admin.php 设置页）
 │   ├── post-copyright/    # 示例：文章版权尾巴（过滤器钩子）
-│   └── sidebar-notice/    # 示例：侧栏公告（动作钩子）
+│   ├── sidebar-notice/    # 侧栏公告（后台可填写内容，含 admin.php 设置页）
+│   └── qingmo-sticky/     # 文章置顶（后台一键置顶/取消）
 ├── data/                  # 数据目录
 │   ├── .htaccess          # 禁止外部访问
 │   ├── config.php         # 站点设置
@@ -194,12 +203,13 @@ themes/paper/
 
 ### 插件系统
 
-插件存放在站点根目录 `plugins/` 下，**每个子文件夹就是一个插件**，需包含两个文件：
+插件存放在站点根目录 `plugins/` 下，**每个子文件夹就是一个插件**：
 
 ```text
 plugins/my-plugin/
 ├── plugin.json   # 元信息（JSON：name/description/version/author）
-└── plugin.php    # 插件入口（include 后注册钩子）
+├── plugin.php    # 插件入口（include 后注册钩子）
+└── admin.php     # 可选：后台「设置」页（启用后插件市场会出现「设置」入口）
 ```
 
 `plugin.php` 示例：
@@ -214,7 +224,9 @@ add_filter('qm_post_content', function ($content, $post) {
 }, 10, 2);
 ```
 
-后台「插件」页面可启用/停用插件。系统内置以下钩子：
+`admin.php` 负责输出设置表单并保存（页面已登录鉴权，表单记得 `csrf_field()`；保存的数据建议用 `load_data/save_data` 存到 `data/` 下自己的文件）。参考实现见 `plugins/footer-beian/admin.php`、`plugins/sidebar-notice/admin.php`。
+
+后台「插件市场」页面可启用/停用插件，启用且带 `admin.php` 的插件会额外显示「设置」入口。系统内置以下钩子：
 
 | 钩子 | 类型 | 说明 |
 |------|------|------|
