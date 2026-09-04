@@ -353,7 +353,8 @@ function load_posts($filter = []) {
     usort($posts, function($a, $b) {
         return ($b['created_at'] ?? 0) <=> ($a['created_at'] ?? 0);
     });
-    return $posts;
+    // 插件扩展点：文章列表排序前的整体调整（例如置顶插件把 sticky 文章提到前面）
+    return apply_filters('qm_posts_list', $posts, $filter);
 }
 
 /**

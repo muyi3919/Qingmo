@@ -1,0 +1,6 @@
+{
+    "name": "文章置顶",
+    "description": "在后台文章列表一键置顶/取消置顶，置顶文章会排到所有列表（首页/分类/归档等）最前。需要核心提供的 qm_posts_list / qm_post_row_actions / qm_admin_posts_head 钩子。",
+    "version": "1.0.0",
+    "author": "Qingmo"
+}

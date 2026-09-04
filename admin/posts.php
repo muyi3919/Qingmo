@@ -4,6 +4,9 @@ $adminPageTitle = '文章管理';
 
 $msg = '';
 
+// 插件扩展点：文章管理页顶部动作（用于置顶切换等请求，鉴权后、输出前执行）
+do_action('qm_admin_posts_head');
+
 // 删除
 if (isset($_GET['delete'])) {
     if (!isset($_GET['token']) || !verify_csrf($_GET['token'] ?? '')) {
@@ -39,19 +42,24 @@ include __DIR__ . '/_header.php';
     <tr>
         <th>ID</th><th>标题</th><th>分类</th><th>状态</th><th>阅读</th><th>评论</th><th>发布时间</th><th>操作</th>
     </tr>
-    <?php foreach ($posts as $p): ?>
+    <?php foreach ($posts as $p):
+        // 插件扩展点：每行操作区（编辑/删除 之后可追加，如「置顶」）
+        $rowActions = '<a href="index.php?page=post-edit&id=' . $p['id'] . '">编辑</a> | '
+            . '<a href="index.php?page=posts&delete=' . $p['id'] . '&token=' . $token . '" onclick="return confirm(\'确定删除？\')" style="color:red">删除</a>';
+        $rowActions = apply_filters('qm_post_row_actions', $rowActions, $p, $token);
+    ?>
     <tr>
         <td><?php echo $p['id']; ?></td>
-        <td><a href="../index.php?page=post&id=<?php echo $p['id']; ?>" target="_blank"><?php echo e($p['title']); ?></a></td>
+        <td>
+            <?php if (!empty($p['sticky'])): ?><strong style="color:#c62828;" title="置顶中">[置顶]</strong> <?php endif; ?>
+            <a href="../index.php?page=post&id=<?php echo $p['id']; ?>" target="_blank"><?php echo e($p['title']); ?></a>
+        </td>
         <td><?php echo e($catMap[$p['category_id']] ?? '未分类'); ?></td>
         <td><?php echo ($p['status'] ?? 0) ? '已发布' : '草稿'; ?></td>
         <td><?php echo $p['view_count'] ?? 0; ?></td>
         <td><?php echo $p['comment_count'] ?? 0; ?></td>
         <td><?php echo format_date($p['created_at']); ?></td>
-        <td>
-            <a href="index.php?page=post-edit&id=<?php echo $p['id']; ?>">编辑</a> |
-            <a href="index.php?page=posts&delete=<?php echo $p['id']; ?>&token=<?php echo $token; ?>" onclick="return confirm('确定删除？')" style="color:red">删除</a>
-        </td>
+        <td><?php echo $rowActions; ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
