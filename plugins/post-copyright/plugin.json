@@ -1,0 +1,6 @@
+{
+    "name": "文章版权尾巴",
+    "description": "在每篇文章正文末尾自动追加版权提示，演示过滤器钩子 apply_filters('qm_post_content', ...)。",
+    "version": "1.0.0",
+    "author": "Qingmo"
+}

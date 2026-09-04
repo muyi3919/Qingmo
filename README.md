@@ -1,0 +1,488 @@
+# 轻墨 (Qingmo)
+
+> 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
+
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/muyi3919/Qingmo)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.0
+
+> **全新界面设计** · **升级视觉体验，支持深色模式** · **性能优化** · **新增文章编辑器** · **评论系统重构** · **本地主题/插件市场**
+
+v2.0 主要更新（均已实现并可用，状态以「✅」标注）：
+
+- ✅ **全新界面设计 / 深色模式**：内置「轻现代」卡片风主题，浅/深色一键切换（导航栏 🌓，自动跟随系统偏好并记忆选择）
+- ✅ **性能优化**：数据读取加入请求内缓存，同一页面反复读取的配置/分类/评论文件不再重复解析，页面加载更快、内存占用更低
+- ✅ **文章编辑器**：正文支持 **Markdown（实时预览）/ 可视化所见即所得 / HTML 源码**三种模式，工具栏快捷排版，**图片拖拽/粘贴/选择上传**（自动存入 `assets/uploads/`，仅管理员可用）
+- ✅ **评论系统重构**：**嵌套回复**（楼中楼，最多展示 3 层）+ **表情快捷插入** + **@提及提醒** + **新评论邮件通知**
+- ✅ **邮件通知（SMTP）**：内置轻量 SMTP 客户端（SSL/STARTTLS/明文，AUTH LOGIN/PLAIN），后台配置后即可用于新评论通知、@提及提醒，并带「发送测试邮件」按钮；未配置 SMTP 时自动回退 PHP `mail()`
+- ✅ **主题 / 插件市场（本地版，无需联网）**：后台「主题市场」一键启用主题并预览样式、「插件市场」启停本地插件
+- ✅ **友链系统**：后台管理友链（增删改），前台友链页 + 侧边栏友链卡片
+- ✅ **文章页脚**：标题 / 链接 / 作者 / 使用协议（后台可配置）
+
+> 说明：按项目定位，v2.0 不提供联网下载的主题/插件在线市场；邮件通知依赖托管环境开启 PHP `mail()`，本地开发环境无法实际投递属正常现象。
+
+---
+
+## 目录
+
+- [功能特性](#功能特性)
+- [项目结构](#项目结构)
+- [安装部署](#安装部署)
+- [使用方法](#使用方法)
+- [Nginx 配置](#nginx-配置)
+- [美化指南](#美化指南)
+- [注意事项](#注意事项)
+- [作者](#作者)
+- [License](#license)
+
+---
+
+## 功能特性
+
+- **文章管理**：发布、编辑、删除文章
+- **文章编辑器**：Markdown / 可视化富文本 / HTML 三模式，图片拖拽上传
+- **分类系统**：文章分类管理
+- **标签系统**：标签归类与检索
+- **评论系统**：评论审核、嵌套回复、表情输入、@提及提醒
+- **邮件通知**：SMTP 发送（新评论 / @提及 / 测试邮件）
+- **文章搜索**：全文搜索
+- **文章归档**：按时间归档
+- **分页浏览**：列表分页
+- **RSS 订阅**：自动生成 RSS 输出
+- **后台仪表盘**：管理概览
+- **密码修改**：后台安全设置
+- **关于页面**：自定义内容
+- **阅读计数**：文章浏览统计
+- **文章页脚**：每篇文章底部显示标题/链接/作者/使用协议（后台可配置）
+- **响应式布局**：适配移动端
+- **CSRF 保护**：表单安全验证
+- **主题系统**：文件夹式主题，后台一键切换
+- **插件系统**：动作/过滤器钩子，后台启停插件
+
+---
+
+## 项目结构
+
+```
+轻墨/
+├── index.php              # 前台入口（自动检测安装状态）
+├── install.php            # 安装脚本（用完删）
+├── rss.php                # RSS 订阅
+├── includes/
+│   ├── functions.php      # 核心函数（含主题/插件/钩子系统、Markdown 渲染）
+│   ├── mailer.php         # 轻量 SMTP 客户端与统一发信
+│   ├── header.php         # 页面头部（含搜索框）
+│   ├── footer.php         # 页面底部
+│   └── db.php             # 占位
+├── assets/
+│   ├── style.css          # 全局样式（后台 + 默认主题回退）
+│   └── uploads/           # 编辑器图片上传目录（自动生成）
+├── themes/                # 主题目录（每个子目录一个主题）
+│   ├── default/           # 默认主题（复古经典，使用 assets/style.css）
+│   │   └── theme.php      # 主题元信息
+│   ├── paper/             # 主题（简约淡雅，自带 style.css）
+│   │   ├── theme.php
+│   │   └── style.css
+│   ├── modern/            # 主题（轻现代卡片，支持深色模式）
+│   │   ├── theme.php      # dark_support=1 声明深色能力
+│   │   └── style.css
+│   └── sakura/            # 主题（樱笺·粉彩纸感，衬线标题 + 樱粉点缀）
+│       ├── theme.php
+│       └── style.css
+├── plugins/               # 插件目录（每个子目录一个插件）
+│   ├── footer-beian/      # 示例：页脚备案信息（动作钩子）
+│   ├── post-copyright/    # 示例：文章版权尾巴（过滤器钩子）
+│   └── sidebar-notice/    # 示例：侧栏公告（动作钩子）
+├── data/                  # 数据目录
+│   ├── .htaccess          # 禁止外部访问
+│   ├── config.php         # 站点设置
+│   ├── users.php          # 管理员
+│   ├── categories.php     # 分类
+│   ├── comments.php       # 评论
+│   ├── about.php          # 关于页面内容
+│   ├── counter.php        # ID计数器
+│   └── posts/             # 文章文件
+└── admin/                 # 后台管理
+    ├── index.php          # 路由
+    ├── login.php          # 登录
+    ├── dashboard.php      # 仪表盘
+    ├── posts.php          # 文章管理
+    ├── post-edit.php      # 写文章（Markdown/HTML 编辑器 + 图片上传）
+    ├── upload.php         # 图片上传接口
+    ├── categories.php     # 分类管理
+    ├── comments.php       # 评论管理（含楼中楼回复）
+    ├── themes.php         # 主题管理（切换主题）
+    ├── plugins.php        # 插件管理（启停插件）
+    ├── settings.php       # 站点设置
+    ├── password.php       # 修改密码
+    └── about-edit.php     # 编辑关于页面
+```
+
+---
+
+## 安装部署
+
+### 环境要求
+
+- **PHP 8.0+**
+- Web 服务器（Apache / Nginx / PHP 内置服务器）
+- **不需要任何数据库**
+
+### 安装步骤
+
+1. 将压缩包解压后上传到网站目录
+2. 设置数据目录权限：
+
+```bash
+chmod -R 755 data/
+chmod -R 755 data/posts/
+```
+
+3. 浏览器访问博客首页，自动跳转到安装页面：
+
+```
+http://你的域名/
+```
+
+4. 按提示完成安装后，**删除 `install.php` 和 `gen-test.php`**
+
+### 默认登录
+
+- 后台：`http://你的域名/admin/`
+- 账号：`admin`
+- 密码：`admin`
+
+---
+
+## 使用方法
+
+### 后台功能
+
+| 功能 | 地址 |
+|------|------|
+| 仪表盘 | `admin/index.php` |
+| 写文章 | `admin/index.php?page=post-edit` |
+| 文章管理 | `admin/index.php?page=posts` |
+| 分类管理 | `admin/index.php?page=categories` |
+| 评论管理 | `admin/index.php?page=comments` |
+| 友链管理 | `admin/index.php?page=links` |
+| 主题市场 | `admin/index.php?page=themes` |
+| 插件市场 | `admin/index.php?page=plugins` |
+| 站点设置 | `admin/index.php?page=settings` |
+| 关于页面 | `admin/index.php?page=about-edit` |
+| 修改密码 | `admin/index.php?page=password` |
+| 退出 | `admin/index.php?logout=1` |
+
+### 主题系统
+
+主题存放在站点根目录 `themes/` 下，**每个子文件夹就是一个主题**：
+
+```text
+themes/paper/
+├── theme.php      # 主题元信息（返回数组：name/description/version/author）
+└── style.css      # 主题样式（可选；缺省时前台回退到 assets/style.css）
+```
+
+后台「主题市场」页面可随时启用/切换主题，刷新前台即生效。系统内置 `default`（复古经典）、`paper`（简约淡雅）、`modern`（轻现代卡片，支持深色模式）与 `sakura`（樱笺·粉彩纸感）四个主题。
+
+`modern` 主题深色模式：页面右上角 🌓 一键切换，首次访问自动跟随系统偏好（`prefers-color-scheme`），选择会记忆在浏览器中（localStorage）。主题 `theme.php` 中声明 `'dark_support' => 1` 即可启用深色能力，其余主题不受影响。
+
+制作新主题：复制任意主题文件夹改名放入 `themes/`，修改 `style.css` 与 `theme.php` 即可。
+
+### 插件系统
+
+插件存放在站点根目录 `plugins/` 下，**每个子文件夹就是一个插件**，需包含两个文件：
+
+```text
+plugins/my-plugin/
+├── plugin.json   # 元信息（JSON：name/description/version/author）
+└── plugin.php    # 插件入口（include 后注册钩子）
+```
+
+`plugin.php` 示例：
+
+```php
+<?php
+if (!defined('QM_BOOT')) { exit('Access denied'); }
+
+// 过滤器：改写文章正文
+add_filter('qm_post_content', function ($content, $post) {
+    return $content . '<p>— 来自我的插件</p>';
+}, 10, 2);
+```
+
+后台「插件」页面可启用/停用插件。系统内置以下钩子：
+
+| 钩子 | 类型 | 说明 |
+|------|------|------|
+| `qm_head` | 动作 | 前台 `<head>` 内，可注入 CSS/JS |
+| `qm_sidebar` | 动作 | 侧边栏小部件之后 |
+| `qm_sidebar_links` | 动作 | 侧边栏「链接」列表内 |
+| `qm_footer` | 动作 | 页脚区域 |
+| `qm_post_content` | 过滤器 | 单篇文章正文（参数：内容、文章数组） |
+| `qm_admin_footer` | 动作 | 后台页面底部 |
+
+安装新主题/插件：把文件夹直接放进 `themes/` / `plugins/` 目录即可，无需改代码。
+
+### RSS 订阅
+
+地址：`http://你的域名/rss.php`
+
+---
+
+## Nginx 配置
+
+```nginx
+server {
+    listen 80;
+    server_name blog.example.com;
+    root /var/www/qingmo;
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+    }
+
+    location ^~ /data/ {
+        deny all;
+    }
+}
+```
+
+---
+
+## 美化指南
+
+所有样式修改都在 `assets/style.css` 中完成，改完刷新即生效。
+
+### 背景设置
+
+**纯色背景**
+
+```css
+body {
+    background: #f0f0f0;
+}
+```
+
+**图片平铺**
+
+```css
+body {
+    background: #e0e0e0 url("bg.jpg") repeat;
+}
+```
+
+**大图全屏**
+
+```css
+body {
+    background-color: #333;
+    background-image: url("bg.jpg");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    background-attachment: fixed;
+}
+```
+
+图片放到 `assets/bg.jpg`。
+
+### 内容区半透明（配合背景图）
+
+```css
+.container {
+    background: rgba(255, 255, 255, 0.92);
+}
+```
+
+### 配色方案
+
+**经典蓝（默认）**
+
+```css
+a { color: #0000cc; }
+a:hover { color: #cc0000; }
+```
+
+**复古绿**
+
+```css
+a { color: #006400; }
+a:hover { color: #8b0000; }
+```
+
+**温暖棕**
+
+```css
+a { color: #8b4513; }
+a:hover { color: #cd853f; }
+```
+
+**深夜模式**
+
+```css
+body {
+    background: #1a1a1a;
+    color: #d0d0d0;
+}
+.container {
+    background: #2a2a2a;
+    border: 1px solid #555;
+}
+.header h1 a { color: #e0e0e0; }
+.post-meta { color: #888; }
+.sidebar { border-left-color: #555; }
+a { color: #7aa6da; }
+a:hover { color: #ff6b6b; }
+```
+
+### 字体调整
+
+**现代字体**
+
+```css
+body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+}
+```
+
+**复古等宽**
+
+```css
+body {
+    font-family: "Courier New", "SimSun", "宋体", monospace;
+}
+```
+
+**字号调大**
+
+```css
+body {
+    font-size: 15px;
+    line-height: 1.8;
+}
+```
+
+### 布局微调
+
+**内容区加宽**
+
+```css
+.container {
+    max-width: 900px;
+}
+```
+
+**去掉边框（极简）**
+
+```css
+.container {
+    border: none;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+```
+
+### 装饰元素
+
+**标题加横线**
+
+```css
+.header h1 {
+    border-bottom: 3px double #999;
+    padding-bottom: 8px;
+}
+```
+
+**文章列表加小图标**
+
+```css
+.post-item h2::before {
+    content: "▸ ";
+    color: #999;
+}
+```
+
+**评论区加引号**
+
+```css
+.comment-content::before {
+    content: '"';
+    color: #ccc;
+    font-size: 24px;
+}
+```
+
+### 响应式适配
+
+```css
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+        font-size: 15px;
+    }
+    .main, .sidebar {
+        float: none;
+        width: 100%;
+        border-left: none;
+        padding-left: 0;
+    }
+}
+```
+
+### 推荐组合
+
+```css
+body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #333;
+    background: #e8e8e8 url("bg.jpg") no-repeat center center fixed;
+    background-size: cover;
+    margin: 0;
+    padding: 30px;
+}
+.container {
+    max-width: 860px;
+    margin: 0 auto;
+    border: 1px solid #bbb;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.94);
+}
+a { color: #2e5c8a; }
+a:hover { color: #d43f3a; }
+```
+
+---
+
+## 注意事项
+
+1. **安装后删除**：`install.php` 和 `gen-test.php`
+2. **尽快修改默认密码**：后台 → 修改密码
+3. **Nginx 安全配置**：确保配置 `location ^~ /data/ { deny all; }`
+
+---
+
+## 作者
+
+**kina漫记** · [kina.ink](https://kina.ink)
+
+---
+
+## License
+
+MIT License
+
+---
+
+*轻墨 — 轻量纯粹的写作空间*

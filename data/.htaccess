@@ -1,0 +1,10 @@
+# 禁止外部访问数据目录（Apache 2.2 / 2.4）
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+# Nginx 用户请在站点配置中增加：location ^~ /data/ { deny all; }

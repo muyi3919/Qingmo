@@ -1,0 +1,6 @@
+{
+    "name": "侧栏公告",
+    "description": "在侧边栏顶部插入一条公告小部件，演示动作钩子 do_action('qm_sidebar')。",
+    "version": "1.0.0",
+    "author": "Qingmo"
+}
