@@ -24,6 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $config['comment_email_on'] = (int)($_POST['comment_email_on'] ?? 0);
         $config['notify_email'] = trim($_POST['notify_email'] ?? '');
         $config['at_notify_on'] = (int)($_POST['at_notify_on'] ?? 1);
+        // 页脚自定义内容（信任管理员输入，支持 HTML）
+        $config['footer_extra'] = trim($_POST['footer_extra'] ?? '');
         // 邮件发送方式：php=PHP mail() / smtp=SMTP
         $config['mailer_mode'] = ($_POST['mailer_mode'] ?? 'php') === 'smtp' ? 'smtp' : 'php';
         $config['smtp_host'] = trim($_POST['smtp_host'] ?? '');
@@ -131,6 +133,12 @@ include __DIR__ . '/_header.php';
 
     <label>通知收件邮箱（站长）</label>
     <input type="email" name="notify_email" value="<?php echo e($settings['notify_email'] ?? ''); ?>" placeholder="admin@example.com">
+
+    <h3 style="margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px;">页脚自定义</h3>
+
+    <label>页脚自定义内容（支持 HTML，显示在所有页面底部）</label>
+    <textarea name="footer_extra" style="height:90px;" placeholder="例如：&lt;script async src=&quot;https://...&quot;&gt;&lt;/script&gt; 或版权/备案文字、备案号跳链等"><?php echo e($settings['footer_extra'] ?? ''); ?></textarea>
+    <p style="font-size:12px;color:#888;margin:2px 0 0;">适合放统计代码、备案号、自定义版权行；内容仅在管理员可编辑，因此视为可信输入。</p>
 
     <h3 style="margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px;">邮件发送方式（SMTP）</h3>
 

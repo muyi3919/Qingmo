@@ -1,0 +1,6 @@
+{
+    "name": "SEO 优化",
+    "description": "为前台页面输出 canonical、Open Graph、Twitter Card 与文章 JSON-LD 结构化数据；设置页可一键生成 sitemap.xml（站点地图）。",
+    "version": "1.0.0",
+    "author": "Qingmo"
+}

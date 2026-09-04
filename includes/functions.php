@@ -6,6 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
+    define('QM_VERSION', '2.3.0');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -1028,4 +1029,39 @@ function qm_notify_mentions($comment, $post, $commenters = null) {
             . '<div style="border:1px solid #ddd;background:#fafafa;padding:10px;">' . qm_text_to_html($content) . '</div>';
         qm_send_mail($target['email'], $subject, $body, $html);
     }
+}
+
+/**
+ * “有人回复了你的评论”提醒（点“回复”按钮产生 parent_id 时触发）
+ */
+function qm_notify_reply($comment, $post) {
+    $parentId = (int)($comment['parent_id'] ?? 0);
+    if ($parentId <= 0) return;
+    $poster = trim((string)($comment['author_name'] ?? ''));
+    $target = null;
+    foreach (load_comments((int)($post['id'] ?? 0)) as $c) {
+        if ((int)($c['id'] ?? 0) === $parentId) {
+            $target = $c;
+            break;
+        }
+    }
+    if (!$target || !is_array($target)) return;
+    if ((int)get_setting('at_notify_on', 1) !== 1) return; // 与 @提及共用同一个开关
+    if (mb_strtolower((string)($target['author_name'] ?? '')) === mb_strtolower($poster)) return; // 回复自己
+    $to = trim((string)($target['author_email'] ?? ''));
+    if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) return;
+
+    $replyContent = trim((string)($comment['content'] ?? ''));
+    $site = get_setting('site_title', '我的博客');
+    $postTitle = (string)($post['title'] ?? '');
+    $postUrl = site_base_url() . '/index.php?page=post&id=' . (int)($post['id'] ?? 0);
+    $subject = '[' . $site . '] ' . $poster . ' 回复了你在《' . $postTitle . '》的评论';
+    $body  = "你好，{$target['author_name']}：\n\n"
+        . $poster . " 回复了你在《{$postTitle}》的评论。\n\nTa 说：\n" . $replyContent
+        . "\n\n查看：{$postUrl}";
+    $html  = '<p>你好，' . qm_text_to_html($target['author_name']) . '：</p>'
+        . '<p>' . qm_text_to_html($poster) . ' 回复了你在文章《'
+        . '<a href="' . e($postUrl) . '">' . qm_text_to_html($postTitle) . '</a>》中的评论：</p>'
+        . '<div style="border:1px solid #ddd;background:#fafafa;padding:10px;">' . qm_text_to_html($replyContent) . '</div>';
+    qm_send_mail($to, $subject, $body, $html);
 }

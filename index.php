@@ -93,7 +93,11 @@ switch ($page) {
             $content = trim($_POST['content'] ?? '');
             $parentId = (int)($_POST['parent_id'] ?? 0);
             
-            if ($name && $content) {
+            if ($name === '' || $email === '' || $content === '') {
+                $msg = '请填写昵称、邮箱和评论内容。';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $msg = '邮箱格式不正确。';
+            } else {
                 if (!verify_csrf($_POST['csrf_token'] ?? '')) {
                     $msg = '安全验证失败，请刷新页面重试。';
                 } else {
@@ -107,6 +111,17 @@ switch ($page) {
                         'content' => $content,
                         'status' => $status,
                     ];
+                    // 插件扩展点：写入前的评论数据（归属地插件在此补 IP/地区、反垃圾插件可校验拦截）
+                    $newComment = apply_filters('qm_comment_data', $newComment, $post);
+                    if ($newComment === false) {
+                        // 插件可通过 $GLOBALS['qm_comment_error'] 提供具体拒绝原因
+                        $rejectMsg = isset($GLOBALS['qm_comment_error'])
+                            ? (string)$GLOBALS['qm_comment_error']
+                            : '评论未通过校验，请检查后重试。';
+                        $_SESSION['flash_msg'] = $rejectMsg;
+                        header('Location: index.php?page=post&id=' . $id);
+                        exit;
+                    }
                     add_comment($newComment);
                     // 重算已审核评论数，保证前后台计数一致
                     $post = load_post($id);
@@ -115,12 +130,15 @@ switch ($page) {
                     qm_notify_new_comment($newComment, $post);
                     // @提及提醒：给评论中 @ 到的历史评论者发邮件
                     qm_notify_mentions($newComment, $post);
+                    // 回复提醒：点“回复”时给被回复的评论者发邮件
+                    qm_notify_reply($newComment, $post);
+                    // 用 cookie 记住访客昵称/邮箱/主页，方便下次留言
+                    $guestProfile = base64_encode(json_encode(['n' => $name, 'e' => $email, 'u' => $url], JSON_UNESCAPED_UNICODE));
+                    @setcookie('qm_guest', $guestProfile, time() + 31536000, '/', '', false, true);
                     $_SESSION['flash_msg'] = $status ? '评论提交成功！' : '评论已提交，等待审核。';
                     header('Location: index.php?page=post&id=' . $id);
                     exit;
                 }
-            } else {
-                $msg = '请填写昵称和评论内容。';
             }
         }
         
@@ -197,6 +215,7 @@ switch ($page) {
                         <?php endif; ?>
                         发表于 <?php echo format_date($node['created_at']); ?>
                     </div>
+                    <?php do_action('qm_comment_meta', $node); // 插件扩展点：评论归属地等小徽标 ?>
                     <div class="comment-content">
                         <?php echo $highlightAt(nl2br(e($node['content']))); ?>
                     </div>
@@ -219,17 +238,25 @@ switch ($page) {
             <?php endif; ?>
 
             <?php if (get_setting('allow_comments', '1') == '1'): ?>
+            <?php
+            // 从 cookie 读取上次填写的访客信息
+            $qmGuest = ['n' => '', 'e' => '', 'u' => ''];
+            if (!empty($_COOKIE['qm_guest'])) {
+                $g = json_decode(base64_decode((string)$_COOKIE['qm_guest']), true);
+                if (is_array($g)) $qmGuest = $g + $qmGuest;
+            }
+            ?>
             <div class="comment-form" id="commentFormBox">
                 <h4 id="commentFormTitle">发表评论</h4>
                 <form method="post" action="" id="commentForm">
                     <?php csrf_field(); ?>
                     <input type="hidden" name="parent_id" id="commentParentId" value="0">
                     <label>昵称 *</label>
-                    <input type="text" name="author_name" required>
-                    <label>邮箱</label>
-                    <input type="email" name="author_email">
+                    <input type="text" name="author_name" value="<?php echo e($qmGuest['n']); ?>" required>
+                    <label>邮箱 *（必填，仅用于接收回复/提及通知，不会公开展示）</label>
+                    <input type="email" name="author_email" value="<?php echo e($qmGuest['e']); ?>" required>
                     <label>个人主页</label>
-                    <input type="text" name="author_url" placeholder="http://">
+                    <input type="text" name="author_url" value="<?php echo e($qmGuest['u']); ?>" placeholder="http://">
                     <label>内容 *</label>
                     <div class="emoji-bar" id="emojiBar">点击表情插入：
                         <button type="button" class="em" data-em="😀">😀</button>

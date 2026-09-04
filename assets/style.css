@@ -436,3 +436,79 @@ button:hover, input[type="submit"]:hover {
     padding: 0 2px;
 }
 .at-mention:hover { text-decoration: underline; }
+
+/* ===================== 后台侧边栏布局（仿 WP） ===================== */
+body.admin-body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: #eef1f5;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+.admin-shell { display: flex; min-height: 100vh; align-items: stretch; }
+
+/* 左侧栏 */
+.admin-side {
+    width: 230px;
+    min-width: 230px;
+    background: #22303f;
+    color: #cbd5e1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 16px;
+}
+.admin-brand {
+    padding: 20px 20px 16px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.admin-brand span { display: block; font-size: 12px; font-weight: 400; color: #8ba0b5; margin-top: 4px; }
+.admin-menu { padding: 12px 10px; flex: 1; }
+.admin-menu-item {
+    display: block;
+    padding: 9px 14px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-size: 14px;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.admin-menu-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.admin-menu-item.active { background: #2e7d5b; color: #fff; }
+.admin-side-extra { padding: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.admin-side-extra a {
+    display: block;
+    padding: 8px 14px;
+    border-radius: 8px;
+    color: #9fb2c5;
+    font-size: 13px;
+    text-decoration: none;
+}
+.admin-side-extra a:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.admin-side-extra a.danger { color: #f2a3a3; }
+
+/* 右侧主区 */
+.admin-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.admin-topbar {
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 14px 26px;
+}
+.admin-topbar h2 { margin: 0; font-size: 17px; color: #22303f; }
+.admin-content { padding: 22px 26px 40px; max-width: 1180px; width: 100%; box-sizing: border-box; }
+
+/* 登录/退出等非壳页面保持原样 */
+.admin-login { margin: 60px auto; }
+
+@media (max-width: 760px) {
+    .admin-shell { flex-direction: column; }
+    .admin-side { width: 100%; min-width: 0; }
+    .admin-menu { display: flex; flex-wrap: wrap; gap: 4px; }
+    .admin-menu-item { margin-bottom: 0; }
+    .admin-side-extra { display: flex; gap: 8px; }
+    .admin-content { padding: 14px 12px 30px; }
+}
+

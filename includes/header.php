@@ -23,8 +23,15 @@
     <meta name="description" content="<?php echo e(get_setting('site_description')); ?>">
     <link rel="stylesheet" href="<?php echo e(theme_css_url()); ?>">
     <?php
-    // 主题/插件可注入额外 <head> 内容
-    do_action('qm_head');
+    // 主题/插件可注入额外 <head> 内容（附带当前页上下文，便于 SEO/分享类插件使用）
+    $qmScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $qmCurUrl = $qmScheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
+    do_action('qm_head', [
+        'title' => isset($pageTitle) ? $pageTitle : null,
+        'page'  => $_GET['page'] ?? '',
+        'id'    => (int)($_GET['id'] ?? 0),
+        'url'   => $qmCurUrl,
+    ]);
     ?>
 </head>
 <body class="theme-<?php echo e($qmActiveTheme); ?>">

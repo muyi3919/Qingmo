@@ -17,7 +17,7 @@ if (isset($_GET['logout'])) {
 }
 
 $page = $_GET['page'] ?? 'dashboard';
-$allowed = ['dashboard', 'posts', 'post-edit', 'categories', 'comments', 'links', 'themes', 'plugins', 'settings', 'password', 'about-edit'];
+$allowed = ['dashboard', 'posts', 'post-edit', 'categories', 'comments', 'links', 'themes', 'plugins', 'settings', 'password', 'about-edit', 'update'];
 if (!in_array($page, $allowed)) {
     $page = 'dashboard';
 }

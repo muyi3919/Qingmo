@@ -2,8 +2,30 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.1.1-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.3.0-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.3
+
+- ✅ **反垃圾评论插件**：`plugins/qingmo-antispam`，纯服务端校验（提交间隔、按 IP 限频、链接上限、关键词/邮箱/昵称黑名单、最短长度），命中给出具体原因
+- ✅ **回复提醒**：点“回复”发楼中楼时，给被回复者发“有人回复了你的评论”邮件（复用评论者提醒开关）
+- ✅ **评论归属地完善**：记录运营商与国家码，徽标显示「国旗 国家 省市 · 运营商」，悬停显示完整 IP
+- ✅ **SEO 优化插件**：`plugins/qingmo-seo` —— canonical / Open Graph / Twitter Card / 文章 JSON-LD；设置页可生成 **sitemap.xml**
+- ✅ **RSS 增强**：全文（content:encoded）+ 作者 / 分类 / 标签 / 更新时间 / atom self
+- ✅ **页脚自定义**：站点设置可填页脚 HTML（统计代码、备案跳链等）
+- ✅ **后台侧边栏布局**（仿 WordPress）：菜单从顶部挪到左侧并高亮当前页，窄屏自动折叠
+- ✅ **评论体验**：邮箱必填（前后端双重校验）+ 昵称/邮箱/主页记忆（cookie 预填）
+
+---
+
+## 更新日志 v2.2
+
+- ✅ **评论归属地插件**（轻墨版 Easy Location）：`plugins/comment-geo`，提交评论时记录 IP 并可在线查询归属地（ip-api.com，结果本地缓存 N 天、可关）；每条评论旁显示「来自 XX」
+- ✅ **核心新增评论扩展点**（向后兼容）：`qm_comment_data`（写入前过滤器）与 `qm_comment_meta`（渲染动作）——反垃圾、归属地等评论插件都可挂载
+- ✅ **在线更新**：后台「系统更新」可检查 GitHub 最新提交并一键拉取覆盖（自动排除 `data/`、`assets/uploads/`）；更新源可改为自定义 zip 直链
+- ✅ 新增 `QM_VERSION` 版本常量，目前 **v2.2.0**
 
 ---
 
@@ -111,7 +133,10 @@ v2.0 主要更新（均已实现并可用，状态以「✅」标注）：
 │   ├── footer-beian/      # 页脚备案信息（后台可填写文案，含 admin.php 设置页）
 │   ├── post-copyright/    # 示例：文章版权尾巴（过滤器钩子）
 │   ├── sidebar-notice/    # 侧栏公告（后台可填写内容，含 admin.php 设置页）
-│   └── qingmo-sticky/     # 文章置顶（后台一键置顶/取消）
+│   ├── qingmo-sticky/     # 文章置顶（后台一键置顶/取消）
+│   ├── comment-geo/       # 评论归属地（轻墨版 Easy Location，记录 IP + 在线查归属地）
+│   ├── qingmo-seo/        # SEO 优化（canonical/OG/Twitter/JSON-LD + 生成 sitemap.xml）
+│   └── qingmo-antispam/   # 反垃圾评论（限频/黑名单/链接上限）
 ├── data/                  # 数据目录
 │   ├── .htaccess          # 禁止外部访问
 │   ├── config.php         # 站点设置
@@ -187,6 +212,7 @@ http://你的域名/
 | 友链管理 | `admin/index.php?page=links` |
 | 主题市场 | `admin/index.php?page=themes` |
 | 插件市场 | `admin/index.php?page=plugins` |
+| 系统更新 | `admin/index.php?page=update` |
 | 站点设置 | `admin/index.php?page=settings` |
 | 关于页面 | `admin/index.php?page=about-edit` |
 | 修改密码 | `admin/index.php?page=password` |
