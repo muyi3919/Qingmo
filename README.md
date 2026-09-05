@@ -2,8 +2,14 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.3.2-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.3.3-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.3.3
+
+- ✅ **修复在线更新 GitHub 404**：`owner/repo` 此前被整段 URL 编码（`/` 变成 `%2F`），现改为拆成 owner 与 repo 两段分别编码；404 提示也会区分“仓库/分支不存在或为私有”
 
 ---
 

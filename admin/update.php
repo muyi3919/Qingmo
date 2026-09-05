@@ -1,10 +1,14 @@
 <?php
 /**
  * 系统更新（在线更新）
- * - 检查更新：读取 GitHub 仓库 main 分支最新提交
+ * - 检查更新：读取 GitHub 仓库指定分支最新提交
  * - 立即更新：下载仓库 zip 并覆盖站点文件（自动排除 data/、assets/uploads/、.git）
  * - 更新源可改为自定义 zip 直链（内网/镜像场景）
- * 说明：临时目录使用服务器系统临时目录（避免站点 data/ 目录不可建子目录导致的权限问题）。
+ *
+ * 说明（v2.3.2+）：
+ *  - 临时目录使用系统 temp，不依赖 data/ 建子目录；
+ *  - owner/repo 必须拆成两段分别 URL 编码（不能整段编码，否则 / 变 %2F 会 404）；
+ *  - 各类网络/权限错误给出具体提示。
  */
 require_once __DIR__ . '/_guard.php';
 $adminPageTitle = '系统更新';
@@ -13,7 +17,22 @@ $msg = '';
 $err = '';
 $info = '';
 
-/* ---------- 网络请求（返回状态码与错误） ---------- */
+/* ================= 小工具 ================= */
+
+/**
+ * 解析并校验 owner/repo
+ */
+function qm_ota_repo_parts($repo) {
+    $repo = trim((string)$repo);
+    $parts = explode('/', $repo, 2);
+    if (count($parts) !== 2) return null;
+    list($owner, $name) = $parts;
+    if ($owner === '' || $name === '') return null;
+    if (!preg_match('/^[A-Za-z0-9_.\-]{1,64}$/', $owner)) return null;
+    if (!preg_match('/^[A-Za-z0-9_.\-]{1,100}$/', $name)) return null;
+    return [$owner, $name];
+}
+
 function qm_ota_http($url) {
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
@@ -54,12 +73,109 @@ function qm_ota_rmdir($dir) {
     @rmdir($dir);
 }
 
-/* ---------- 配置 ---------- */
+/**
+ * 执行一次在线更新：成功返回 ''（并把提示写入 $GLOBALS['_qm_ota_msg']），失败返回错误文案
+ */
+function qm_ota_run_update($otaRepo, $otaBranch, $otaZipUrl) {
+    $tmpRoot = rtrim(sys_get_temp_dir(), '/\\');
+    $tmpDir = $tmpRoot . '/qingmo_ota_' . substr(md5(ROOT_DIR), 0, 10);
+    if (is_dir($tmpDir)) qm_ota_rmdir($tmpDir);
+    @mkdir($tmpDir, 0755, true);
+    if (!is_dir($tmpDir) || !is_writable($tmpDir)) {
+        return '无法在系统临时目录创建更新工作区（' . $tmpDir . '），请检查 PHP sys_get_temp_dir 是否可写。';
+    }
+    if (!class_exists('ZipArchive')) {
+        return '服务器未启用 Zip 扩展，无法解压更新。';
+    }
+
+    // 决定下载地址（自定义直链 or GitHub 仓库 zip，owner/repo 分段编码）
+    if ($otaZipUrl !== '') {
+        $zipUrl = $otaZipUrl;
+    } else {
+        $parts = qm_ota_repo_parts($otaRepo);
+        if ($parts === null) {
+            return '仓库地址不合法，格式应为：owner/repo（例如 muyi3919/Qingmo）。';
+        }
+        $zipUrl = 'https://codeload.github.com/' . rawurlencode($parts[0]) . '/' . rawurlencode($parts[1])
+            . '/zip/refs/heads/' . rawurlencode($otaBranch);
+    }
+
+    $res = qm_ota_http($zipUrl);
+    if (!$res['ok']) {
+        return '更新包下载失败：' . $res['error']
+            . '（请确认服务器能访问 codeload.github.com；网络受限时请改用「自定义更新包直链」）。';
+    }
+    if ($res['code'] !== 200 || strlen($res['body']) < 1000) {
+        return '更新包下载失败：HTTP ' . $res['code'] . '（地址有误、仓库私有或网络受限，可改用自定义直链）。';
+    }
+
+    $zipFile = $tmpDir . '/update.zip';
+    if (file_put_contents($zipFile, $res['body']) === false) {
+        return '更新包写入临时文件失败，请检查服务器 temp 目录权限。';
+    }
+
+    $za = new ZipArchive();
+    if ($za->open($zipFile) !== true) {
+        qm_ota_rmdir($tmpDir);
+        return '更新包不是有效的 zip 文件。';
+    }
+    $extract = $tmpDir . '/x';
+    @mkdir($extract, 0755, true);
+    if (!is_dir($extract)) {
+        $za->close();
+        qm_ota_rmdir($tmpDir);
+        return '无法创建解压目录，请检查服务器 temp 目录权限。';
+    }
+    $za->extractTo($extract);
+    $za->close();
+
+    // zip 内若只有唯一顶层文件夹（GitHub 的 {repo}-{branch}）则取其内容
+    $base = $extract;
+    $tops = array_values(array_diff(scandir($extract), ['.', '..']));
+    if (count($tops) === 1 && is_dir($extract . '/' . $tops[0])) {
+        $base = $extract . '/' . $tops[0];
+    }
+
+    // 递归覆盖（排除 data/、assets/uploads/、.git）
+    $copied = 0;
+    $failed = 0;
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS)
+    );
+    foreach ($it as $file) {
+        if (!$file->isFile()) continue;
+        $rel = substr($file->getPathname(), strlen($base) + 1);
+        $rel = str_replace('\\', '/', $rel);
+        $segs = explode('/', $rel);
+        if (in_array($segs[0] ?? '', ['data', '.git'], true)
+            || (($segs[0] ?? '') === 'assets' && ($segs[1] ?? '') === 'uploads')) {
+            continue;
+        }
+        $dest = ROOT_DIR . '/' . $rel;
+        if (!is_dir(dirname($dest))) @mkdir(dirname($dest), 0755, true);
+        if (@copy($file->getPathname(), $dest)) $copied++; else $failed++;
+    }
+    qm_ota_rmdir($tmpDir);
+
+    $cfg = load_config();
+    $cfg['ota_last_update'] = time();
+    save_config($cfg);
+
+    if ($copied === 0) {
+        return '更新未能写入任何文件，请检查站点根目录（' . ROOT_DIR . '）的写权限。';
+    }
+    $GLOBALS['_qm_ota_msg'] = '更新完成：写入 ' . $copied . ' 个文件'
+        . ($failed > 0 ? '，失败 ' . $failed . ' 个（多为目录无写权限）' : '')
+        . '（data/ 与上传文件已自动跳过）。建议 Ctrl+F5 强刷缓存。';
+    return '';
+}
+
+/* ================= 配置 ================= */
 $otaRepo   = trim((string)get_setting('ota_repo', 'muyi3919/Qingmo'));
 $otaBranch = trim((string)get_setting('ota_branch', 'main'));
-$otaZipUrl = trim((string)get_setting('ota_zip_url', '')); // 自定义 zip 直链（可选）
+$otaZipUrl = trim((string)get_setting('ota_zip_url', ''));
 
-/* ---------- 处理动作 ---------- */
+/* ================= 处理动作 ================= */
 if (isset($_GET['action'])) {
     if (!isset($_GET['token']) || !verify_csrf($_GET['token'] ?? '')) {
         die('安全验证失败');
@@ -70,39 +186,46 @@ if (isset($_GET['action'])) {
         if ($otaZipUrl !== '') {
             $info = '当前使用自定义 zip 直链，无法比对版本；可直接点「立即更新」覆盖站点文件。';
         } else {
-            $api = 'https://api.github.com/repos/' . rawurlencode($otaRepo) . '/commits/' . rawurlencode($otaBranch);
-            $res = qm_ota_http($api);
-            if (!$res['ok']) {
-                $err = '无法连接 GitHub API：' . e($res['error'])
-                    . '（请确认服务器能访问 api.github.com；若网络受限，可在下方改用「自定义更新包直链」）。';
-            } elseif ($res['code'] !== 200) {
-                $hint = '';
-                $j = json_decode($res['body'], true);
-                if (is_array($j) && !empty($j['message'])) {
-                    $hint = ' —— ' . (string)$j['message'];
-                }
-                if ($res['code'] === 404) {
-                    $hint .= '（仓库或分支不存在，请检查 owner/repo 与分支名）';
-                } elseif ($res['code'] === 403) {
-                    $hint .= '（GitHub API 访问受限/限流，稍后再试，或改用自定义直链）';
-                }
-                $err = 'GitHub API 返回 HTTP ' . $res['code'] . $hint;
+            $parts = qm_ota_repo_parts($otaRepo);
+            if ($parts === null) {
+                $err = '仓库地址不合法，格式应为：owner/repo（例如 muyi3919/Qingmo）。';
             } else {
-                $data = json_decode($res['body'], true);
-                if (!is_array($data) || !isset($data['sha'])) {
-                    $err = '读取仓库信息失败：响应不是有效的提交数据（请检查仓库名，格式：owner/repo）。';
-                } else {
-                    $sha = substr((string)$data['sha'], 0, 7);
-                    $message = trim(explode("\n", (string)($data['commit']['message'] ?? ''))[0]);
-                    $lastSha = (string)get_setting('ota_last_sha', '');
-                    if ($lastSha !== '' && $lastSha !== $sha) {
-                        $info = '发现新版本：' . e($message) . '（' . $sha . '）。当前记录的上次提交：' . e($lastSha);
-                    } else {
-                        $info = '仓库最新提交：' . e($message) . '（' . $sha . '）。';
+                // 注意：owner 与 repo 必须分开编码
+                $api = 'https://api.github.com/repos/' . rawurlencode($parts[0]) . '/' . rawurlencode($parts[1])
+                    . '/commits/' . rawurlencode($otaBranch);
+                $res = qm_ota_http($api);
+                if (!$res['ok']) {
+                    $err = '无法连接 GitHub API：' . e($res['error'])
+                        . '（请确认服务器能访问 api.github.com；若网络受限，可在下方改用「自定义更新包直链」）。';
+                } elseif ($res['code'] !== 200) {
+                    $hint = '';
+                    $j = json_decode($res['body'], true);
+                    if (is_array($j) && !empty($j['message'])) {
+                        $hint = ' —— ' . (string)$j['message'];
                     }
-                    $cfg = load_config();
-                    $cfg['ota_last_sha'] = $sha;
-                    save_config($cfg);
+                    if ($res['code'] === 404) {
+                        $hint .= '（仓库或分支不存在，或仓库为私有：请检查 owner/repo、分支名；在线更新仅支持公开仓库）';
+                    } elseif ($res['code'] === 403) {
+                        $hint .= '（GitHub API 访问受限/限流，稍后再试，或改用自定义直链）';
+                    }
+                    $err = 'GitHub API 返回 HTTP ' . $res['code'] . $hint;
+                } else {
+                    $data = json_decode($res['body'], true);
+                    if (!is_array($data) || !isset($data['sha'])) {
+                        $err = '读取仓库信息失败：响应不是有效的提交数据（请检查仓库名，格式：owner/repo）。';
+                    } else {
+                        $sha = substr((string)$data['sha'], 0, 7);
+                        $message = trim(explode("\n", (string)($data['commit']['message'] ?? ''))[0]);
+                        $lastSha = (string)get_setting('ota_last_sha', '');
+                        if ($lastSha !== '' && $lastSha !== $sha) {
+                            $info = '发现新版本：' . e($message) . '（' . $sha . '）。当前记录的上次提交：' . e($lastSha);
+                        } else {
+                            $info = '仓库最新提交：' . e($message) . '（' . $sha . '）。';
+                        }
+                        $cfg = load_config();
+                        $cfg['ota_last_sha'] = $sha;
+                        save_config($cfg);
+                    }
                 }
             }
         }
@@ -110,85 +233,12 @@ if (isset($_GET['action'])) {
 
     if ($action === 'update') {
         set_time_limit(0);
-        // 临时目录放到系统 temp，避免站点 data/ 目录无法建子目录
-        $tmpRoot = rtrim(sys_get_temp_dir(), '/\\');
-        $tmpDir = $tmpRoot . '/qingmo_ota_' . substr(md5(ROOT_DIR), 0, 10);
-        if (is_dir($tmpDir)) qm_ota_rmdir($tmpDir);
-        @mkdir($tmpDir, 0755, true);
-        if (!is_dir($tmpDir) || !is_writable($tmpDir)) {
-            $err = '无法在系统临时目录创建更新工作区（' . e($tmpDir) . '），请检查服务器 PHP 的 sys_get_temp_dir 是否可写。';
-        } elseif (!class_exists('ZipArchive')) {
-            $err = '服务器未启用 Zip 扩展，无法解压更新。';
+        $runErr = qm_ota_run_update($otaRepo, $otaBranch, $otaZipUrl);
+        if ($runErr === '') {
+            $msg = $GLOBALS['_qm_ota_msg'] ?? '更新完成。';
+            unset($GLOBALS['_qm_ota_msg']);
         } else {
-            $zipUrl = $otaZipUrl !== ''
-                ? $otaZipUrl
-                : 'https://codeload.github.com/' . rawurlencode($otaRepo) . '/zip/refs/heads/' . rawurlencode($otaBranch);
-
-            $res = qm_ota_http($zipUrl);
-            if (!$res['ok']) {
-                $err = '更新包下载失败：' . e($res['error'])
-                    . '（请确认服务器能访问 codeload.github.com；网络受限时请改用「自定义更新包直链」）。';
-            } elseif ($res['code'] !== 200 || strlen($res['body']) < 1000) {
-                $err = '更新包下载失败：HTTP ' . $res['code'] . '（地址有误或网络受限，可改用自定义直链）。';
-            } else {
-                $zipFile = $tmpDir . '/update.zip';
-                if (file_put_contents($zipFile, $res['body']) === false) {
-                    $err = '更新包写入临时文件失败，请检查服务器 temp 目录权限。';
-                } else {
-                    $za = new ZipArchive();
-                    if ($za->open($zipFile) !== true) {
-                        $err = '更新包不是有效的 zip 文件。';
-                    } else {
-                        $extract = $tmpDir . '/x';
-                        @mkdir($extract, 0755, true);
-                        if (!is_dir($extract)) {
-                            $err = '无法创建解压目录，请检查服务器 temp 目录权限。';
-                        } else {
-                            $za->extractTo($extract);
-                            $za->close();
-
-                            // zip 内若只有唯一顶层文件夹（GitHub 的 {repo}-{branch}）则取其内容
-                            $base = $extract;
-                            $tops = array_values(array_diff(scandir($extract), ['.', '..']));
-                            if (count($tops) === 1 && is_dir($extract . '/' . $tops[0])) {
-                                $base = $extract . '/' . $tops[0];
-                            }
-
-                            // 递归覆盖（排除 data/、assets/uploads/、.git）
-                            $copied = 0;
-                            $failed = 0;
-                            $it = new RecursiveIteratorIterator(
-                                new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS)
-                            );
-                            foreach ($it as $file) {
-                                if (!$file->isFile()) continue;
-                                $rel = substr($file->getPathname(), strlen($base) + 1);
-                                $rel = str_replace('\\', '/', $rel);
-                                $segs = explode('/', $rel);
-                                if (in_array($segs[0] ?? '', ['data', '.git'], true)
-                                    || (($segs[0] ?? '') === 'assets' && ($segs[1] ?? '') === 'uploads')) {
-                                    continue;
-                                }
-                                $dest = ROOT_DIR . '/' . $rel;
-                                if (!is_dir(dirname($dest))) @mkdir(dirname($dest), 0755, true);
-                                if (@copy($file->getPathname(), $dest)) $copied++; else $failed++;
-                            }
-
-                            $cfg = load_config();
-                            $cfg['ota_last_update'] = time();
-                            save_config($cfg);
-                            if ($copied === 0) {
-                                $err = '更新未能写入任何文件，请检查站点根目录（' . e(ROOT_DIR) . '）的写权限。';
-                            } else {
-                                $msg = '更新完成：写入 ' . $copied . ' 个文件'
-                                    . ($failed > 0 ? '，失败 ' . $failed . ' 个（多为目录无写权限）' : '')
-                                    . '（data/ 与上传文件已自动跳过）。建议 Ctrl+F5 强刷缓存。';
-                            }
-                        }
-                    }
-                }
-                qm_ota_rmdir($tmpDir);
-            }
+            $err = $runErr;
         }
     }
 }
