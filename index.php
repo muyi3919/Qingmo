@@ -443,6 +443,62 @@ switch ($page) {
         include 'includes/footer.php';
         break;
 
+    case 'date':
+        // 按日归档页（热力图格子点击进入）
+        $rawDate = (string)($_GET['date'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate)) {
+            $rawDate = '';
+        }
+        $dStart = $rawDate !== '' ? strtotime($rawDate) : false;
+        if ($dStart === false) {
+            http_response_code(404);
+            $pageTitle = '归档不存在';
+            include 'includes/header.php';
+            echo '<h2>归档不存在</h2><p>日期格式不正确。</p><p><a href="index.php?page=archive">返回文章归档</a></p>';
+            include 'includes/footer.php';
+            break;
+        }
+        $dEnd = $dStart + 86400;
+
+        $datePosts = array_values(array_filter(load_posts(['status' => 1]), function ($pp) use ($dStart, $dEnd) {
+            $ts = (int)($pp['created_at'] ?? 0);
+            return $ts >= $dStart && $ts < $dEnd;
+        }));
+        $total = count($datePosts);
+
+        $perPage = (int)get_setting('posts_per_page', 10);
+        $p = (int)($_GET['page_num'] ?? 1);
+        $pg = paginate($total, $p, $perPage);
+        $datePosts = array_slice($datePosts, $pg['offset'], $pg['perPage']);
+
+        $pageTitle = '归档：' . $rawDate;
+        include 'includes/header.php';
+        ?>
+        <h2>归档：<?php echo e($rawDate); ?>（共 <?php echo $total; ?> 篇）</h2>
+        <p class="date-nav" style="font-size:13px;">
+            <a href="index.php?page=date&date=<?php echo date('Y-m-d', $dStart - 86400); ?>">‹ 前一天</a>
+            <?php if ($dStart < time()): ?>
+            | <a href="index.php?page=date&date=<?php echo date('Y-m-d', $dEnd); ?>">后一天 ›</a>
+            <?php endif; ?>
+            | <a href="index.php?page=archive">全部归档</a>
+        </p>
+        <div class="post-list">
+        <?php if ($total === 0): ?>
+            <p>这一天没有发布文章。</p>
+        <?php endif; ?>
+        <?php foreach ($datePosts as $post): ?>
+            <div class="post-item">
+                <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?></a></h2>
+                <div class="post-meta">发表于 <?php echo format_date($post['created_at']); ?></div>
+                <div class="post-summary"><?php echo $post['summary'] ?: make_summary($post['content'], 200); ?></div>
+            </div>
+        <?php endforeach; ?>
+        </div>
+        <?php
+        echo pagination_html($pg, 'index.php?page=date&date=' . $rawDate);
+        include 'includes/footer.php';
+        break;
+
     case 'about':
         $about = load_about();
         $pageTitle = $about['title'] ?? '关于';

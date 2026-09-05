@@ -1,5 +1,6 @@
     </div>
     <div class="sidebar">
+        <?php do_action('qm_sidebar_top'); // 侧栏顶部（分类之前），公告类小部件常用 ?>
         <div class="box">
             <h3>分类</h3>
             <ul>

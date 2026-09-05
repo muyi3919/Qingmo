@@ -2,8 +2,16 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.3.3-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.3.4-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.3.4
+
+- ✅ **按日归档页**：新增 `index.php?page=date&date=YYYY-MM-DD`（写作热力图等点击某天直达当日文章）
+- ✅ **侧栏顶部钩子** `qm_sidebar_top`：位于分类之前，供公告等置顶小部件使用
+- ✅ **侧栏公告 v1.2**：默认显示在侧栏顶部，可设置公告标题与显示位置（顶部/底部）
 
 ---
 
