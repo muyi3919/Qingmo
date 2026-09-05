@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.3.1');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.3.2');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');

@@ -2,8 +2,14 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.3.1-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.3.2-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.3.2
+
+- ✅ **在线更新可靠性修复**：临时目录改到服务器系统 temp（不再依赖 `data/` 建子目录，修复 mkdir/file_put_contents 权限报错）；GitHub 网络错误/限流/404 现在给出具体提示而非笼统“仓库名错误”，并提示改用自定义 zip 直链；站点根目录无写权限时会明确提示
 
 ---
 
