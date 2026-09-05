@@ -217,7 +217,7 @@ switch ($page) {
                     </div>
                     <?php do_action('qm_comment_meta', $node); // 插件扩展点：评论归属地等小徽标 ?>
                     <div class="comment-content">
-                        <?php echo $highlightAt(nl2br(e($node['content']))); ?>
+                        <?php echo $highlightAt(qm_emotions_render_html(nl2br(e($node['content'])))); ?>
                     </div>
                     <?php if (get_setting('allow_comments', '1') == '1'): ?>
                         <button type="button" class="reply-btn" data-id="<?php echo (int)$node['id']; ?>" data-name="<?php echo e($node['author_name']); ?>">↩ 回复</button>
@@ -258,21 +258,7 @@ switch ($page) {
                     <label>个人主页</label>
                     <input type="text" name="author_url" value="<?php echo e($qmGuest['u']); ?>" placeholder="http://">
                     <label>内容 *</label>
-                    <div class="emoji-bar" id="emojiBar">点击表情插入：
-                        <button type="button" class="em" data-em="😀">😀</button>
-                        <button type="button" class="em" data-em="😂">😂</button>
-                        <button type="button" class="em" data-em="😍">😍</button>
-                        <button type="button" class="em" data-em="😭">😭</button>
-                        <button type="button" class="em" data-em="😅">😅</button>
-                        <button type="button" class="em" data-em="🤔">🤔</button>
-                        <button type="button" class="em" data-em="😘">😘</button>
-                        <button type="button" class="em" data-em="😎">😎</button>
-                        <button type="button" class="em" data-em="👍">👍</button>
-                        <button type="button" class="em" data-em="🙏">🙏</button>
-                        <button type="button" class="em" data-em="🎉">🎉</button>
-                        <button type="button" class="em" data-em="💪">💪</button>
-                        <button type="button" class="em" data-em="🔥">🔥</button>
-                    </div>
+                    <?php echo qm_emotion_picker_html(); ?>
                     <textarea name="content" id="commentContent" required placeholder="友善发言，理性讨论~"></textarea>
                     <input type="submit" value="提交评论">
                     <button type="button" id="commentCancelReply" style="display:none;">取消回复</button>
@@ -309,16 +295,30 @@ switch ($page) {
                 title.textContent = '发表评论';
                 cancelBtn.style.display = 'none';
             });
-            document.querySelectorAll('#emojiBar .em').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    var em = btn.getAttribute('data-em');
+            // 表情包：可折叠，点击按钮展开/收起面板
+            var emotionToggle = document.getElementById('emotionToggle');
+            var emotionPanel = document.getElementById('emotionPanel');
+            if (emotionToggle && emotionPanel) {
+                emotionToggle.addEventListener('click', function () {
+                    var hidden = emotionPanel.style.display === 'none';
+                    emotionPanel.style.display = hidden ? '' : 'none';
+                    emotionToggle.setAttribute('aria-expanded', hidden ? 'true' : 'false');
+                });
+                // 表情包：text 直接插入；sticker 插入 :code:（展示时替换为图片）
+                emotionPanel.addEventListener('click', function (e) {
+                    var btn = e.target.closest ? e.target.closest('button.em') : null;
+                    if (!btn) return;
+                    var ins = btn.getAttribute('data-kind') === 'sticker'
+                        ? ':' + btn.getAttribute('data-code') + ':'
+                        : btn.getAttribute('data-val');
+                    if (ins == null) return;
                     var s = contentInput.selectionStart, end = contentInput.selectionEnd;
                     var v = contentInput.value;
-                    contentInput.value = v.slice(0, s) + em + v.slice(end);
+                    contentInput.value = v.slice(0, s) + ins + v.slice(end);
                     contentInput.focus();
-                    contentInput.setSelectionRange(s + em.length, s + em.length);
+                    contentInput.setSelectionRange(s + ins.length, s + ins.length);
                 });
-            });
+            }
         })();
         </script>
         <?php

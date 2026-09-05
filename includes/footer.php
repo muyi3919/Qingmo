@@ -55,7 +55,7 @@
     </div>
     <div class="clear"></div>
     <div class="footer">
-        <p>Powered by <strong>轻墨 (Qingmo)</strong> &copy; <?php echo date('Y'); ?> | <a href="rss.php">RSS</a></p>
+        <p>Powered by <strong>轻墨 (Qingmo)</strong> &copy; <?php echo date('Y'); ?> | <a href="rss.php">RSS</a> | <a href="atom.php">Atom</a></p>
         <?php do_action('qm_footer'); ?>
         <?php
         // 后台「站点设置 → 页脚自定义」内容（信任管理员，支持 HTML）

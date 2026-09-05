@@ -2,8 +2,17 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.3.0-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.3.1-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.3.1
+
+- ✅ **RSS 2.0 规范修正**：统一 XML 转义（修复 `&amp;amp;` 双重转义）、CDATA 安全处理 `]]>`
+- ✅ **新增 Atom 1.0 订阅源**：`/atom.php`（feed/entry 全要素 + 全文 `content`）
+- ✅ **评论表情包**：可折叠表情面板；内置「颜文字 / Emoji」两组，插件可用 `qm_emotion_list` 过滤器追加字符与图片表情（`text` / `sticker`，sticker 以 `:code:` 渲染）
+- ✅ 两条订阅源均加 `no-cache` 响应头，发布后即实时可抓
 
 ---
 
@@ -107,10 +116,12 @@ v2.0 主要更新（均已实现并可用，状态以「✅」标注）：
 轻墨/
 ├── index.php              # 前台入口（自动检测安装状态）
 ├── install.php            # 安装脚本（用完删）
-├── rss.php                # RSS 订阅
+├── rss.php                # RSS 2.0 订阅（实时生成）
+├── atom.php               # Atom 1.0 订阅（实时生成）
 ├── includes/
 │   ├── functions.php      # 核心函数（含主题/插件/钩子系统、Markdown 渲染）
 │   ├── mailer.php         # 轻量 SMTP 客户端与统一发信
+│   ├── emotions.php       # 评论表情包（默认组 + qm_emotion_list 过滤器）
 │   ├── header.php         # 页面头部（含搜索框）
 │   ├── footer.php         # 页面底部
 │   └── db.php             # 占位

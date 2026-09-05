@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.3.0');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.3.1');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -47,6 +47,9 @@ $GLOBALS['_qm_hooks'] = ['actions' => [], 'filters' => []];
 
 // 邮件发送（SMTP 客户端 + mail() 回退）
 require_once __DIR__ . '/mailer.php';
+
+// 评论表情包（内置默认组 + qm_emotion_list 过滤器）
+require_once __DIR__ . '/emotions.php';
 
 // ---------- 钩子系统（动作 + 过滤器） ----------
 if (empty($GLOBALS['_qm_hooks'])) {
