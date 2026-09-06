@@ -2,8 +2,14 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.5.0-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.5.1-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.5.1
+
+- ✅ **修复图文混排撑破评论区**：颜文字/表情代码等无空格长文本与图片混排时不再横向撑开版面（`overflow-wrap: anywhere` 自动折行），四个主题同步
 
 ---
 

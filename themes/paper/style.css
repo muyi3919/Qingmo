@@ -115,7 +115,9 @@ a:hover { color: #c0504d; text-decoration: underline; }
 img { max-width: 100%; height: auto; }
 .post-content .content img,
 .comment-content img { cursor: zoom-in; }
-.comment-content img { max-width: min(100%, 240px); border-radius: 6px; }
+.comment-content img { max-width: min(100%, 240px); border-radius: 6px; vertical-align: middle; }
+.comment-content,
+.post-content .content { overflow-wrap: anywhere; word-break: break-word; }
 
 .comment-form {
     margin-top: 16px;

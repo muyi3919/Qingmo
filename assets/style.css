@@ -180,7 +180,7 @@ a:hover {
     margin-top: 5px;
 }
 
-/* 图片自适应：全局防撑破版面；评论区缩略显示（点击可放大） */
+/* 图文混排自适应：全局防撑破版面；评论区缩略显示（可点击放大） */
 img {
     max-width: 100%;
     height: auto;
@@ -192,6 +192,13 @@ img {
 .comment-content img {
     max-width: min(100%, 240px);
     border-radius: 6px;
+    vertical-align: middle;
+}
+/* 长文字（颜文字、长链接、无空格字符串）与图片混排时自动换行，不撑开容器 */
+.comment-content,
+.post-content .content {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .comment-form {
