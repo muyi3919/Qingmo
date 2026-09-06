@@ -201,6 +201,10 @@ switch ($page) {
                     return $mm[0];
                 }, $text);
             };
+            // 评论内 Markdown 图片：内联限宽兜底（不依赖 CSS，旧缓存/换主题也不撑爆）
+            $qmCommentImgCap = function ($html) {
+                return preg_replace('/(<img class="qm-img")/', '$1 style="max-width:240px;height:auto;vertical-align:middle;"', (string)$html);
+            };
             // 统计某节点下所有子孙评论数
             $countKids = function ($nodes) use (&$countKids) {
                 $n = 0;
@@ -210,7 +214,7 @@ switch ($page) {
                 return $n;
             };
             // 递归渲染评论（支持任意层深；子回复默认折叠，点「展开回复」逐层展开）
-            $renderComment = function ($node, $depth = 0) use (&$renderComment, &$countKids, $highlightAt) {
+            $renderComment = function ($node, $depth = 0) use (&$renderComment, &$countKids, $highlightAt, $qmCommentImgCap) {
                 $parentId = (int)($node['parent_id'] ?? 0);
                 $avatarUrl = qm_avatar_url((string)($node['author_email'] ?? ''), 40);
                 ?>
@@ -227,7 +231,7 @@ switch ($page) {
                     </div>
                     <?php do_action('qm_comment_meta', $node); // 插件扩展点：评论归属地等小徽标 ?>
                     <div class="comment-content">
-                        <?php echo $highlightAt(qm_emotions_render_html(md_to_html($node['content']))); // 评论支持 Markdown ?>
+                        <?php echo $highlightAt(qm_emotions_render_html($qmCommentImgCap(md_to_html($node['content'])))); // 评论支持 Markdown，md 图片内联限宽 ?>
                     </div>
                     <?php if (get_setting('allow_comments', '1') == '1'): ?>
                         <button type="button" class="reply-btn" data-id="<?php echo (int)$node['id']; ?>" data-name="<?php echo e($node['author_name']); ?>">↩ 回复</button>

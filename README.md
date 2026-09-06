@@ -2,8 +2,15 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.5.1-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.5.2-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.5.2
+
+- ✅ **评论 md 图片内联限宽**：Markdown 图片在评论内直接输出 `max-width:240px` 内联样式，不再依赖 CSS 是否生效（旧缓存/换主题也不会撑爆）
+- ✅ **样式表带版本号**：`style.css?v=版本号`，发版后浏览器自动加载新样式，绕开长缓存
 
 ---
 

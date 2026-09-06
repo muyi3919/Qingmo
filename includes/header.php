@@ -21,7 +21,7 @@
     <?php endif; ?>
     <title><?php echo isset($pageTitle) ? e($pageTitle) . ' - ' : ''; ?><?php echo e(get_setting('site_title')); ?></title>
     <meta name="description" content="<?php echo e(get_setting('site_description')); ?>">
-    <link rel="stylesheet" href="<?php echo e(theme_css_url()); ?>">
+    <link rel="stylesheet" href="<?php echo e(theme_css_url()); ?>?v=<?php echo QM_VERSION; ?>">
     <?php
     // 主题/插件可注入额外 <head> 内容（附带当前页上下文，便于 SEO/分享类插件使用）
     $qmScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
