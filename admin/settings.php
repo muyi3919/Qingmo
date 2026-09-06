@@ -26,6 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $config['at_notify_on'] = (int)($_POST['at_notify_on'] ?? 1);
         // 页脚自定义内容（信任管理员输入，支持 HTML）
         $config['footer_extra'] = trim($_POST['footer_extra'] ?? '');
+        // 友链排序
+        $config['links_order'] = in_array($_POST['links_order'] ?? 'name', ['name', 'random'], true)
+            ? $_POST['links_order'] : 'name';
         // 邮件发送方式：php=PHP mail() / smtp=SMTP
         $config['mailer_mode'] = ($_POST['mailer_mode'] ?? 'php') === 'smtp' ? 'smtp' : 'php';
         $config['smtp_host'] = trim($_POST['smtp_host'] ?? '');
@@ -57,7 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "这是一封来自 {$config['site_title']} 的测试邮件，说明邮件发送功能配置正确。",
                     '<p>这是一封来自 <strong>' . qm_text_to_html($config['site_title'] ?? '轻墨') . '</strong> 的测试邮件，说明邮件发送功能配置正确。</p>'
                 );
-                $msg = $ok ? '设置已保存，且测试邮件发送成功（收件人：' . e($testTo) . '）。' : '设置已保存，但测试邮件发送失败。';
+                if ($ok) {
+                    $msg = '设置已保存，且测试邮件发送成功（收件人：' . e($testTo) . '）。';
+                } else {
+                    $mailErr = qm_mail_last_error();
+                    $err = '测试邮件发送失败。'
+                        . ($mailErr !== '' ? '<br>具体原因：' . e($mailErr) : '')
+                        . '<br>常见排查：确认服务器能连通 SMTP 服务器与端口；端口 587 用 STARTTLS、465 用 SSL；账号与发件人一致，密码使用“授权码”（QQ/163 需在邮箱后台开启 SMTP）。';
+                }
             }
         }
     }
@@ -139,6 +149,14 @@ include __DIR__ . '/_header.php';
     <label>页脚自定义内容（支持 HTML，显示在所有页面底部）</label>
     <textarea name="footer_extra" style="height:90px;" placeholder="例如：&lt;script async src=&quot;https://...&quot;&gt;&lt;/script&gt; 或版权/备案文字、备案号跳链等"><?php echo e($settings['footer_extra'] ?? ''); ?></textarea>
     <p style="font-size:12px;color:#888;margin:2px 0 0;">适合放统计代码、备案号、自定义版权行；内容仅在管理员可编辑，因此视为可信输入。</p>
+
+    <h3 style="margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px;">友链</h3>
+
+    <label>友链排序</label>
+    <select name="links_order">
+        <option value="name" <?php echo ($settings['links_order'] ?? 'name') === 'name' ? 'selected' : ''; ?>>按名称排序</option>
+        <option value="random" <?php echo ($settings['links_order'] ?? 'name') === 'random' ? 'selected' : ''; ?>>每次刷新随机排序</option>
+    </select>
 
     <h3 style="margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px;">邮件发送方式（SMTP）</h3>
 

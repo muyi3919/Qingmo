@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.3.4');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.4.0');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -1067,4 +1067,35 @@ function qm_notify_reply($comment, $post) {
         . '<a href="' . e($postUrl) . '">' . qm_text_to_html($postTitle) . '</a>》中的评论：</p>'
         . '<div style="border:1px solid #ddd;background:#fafafa;padding:10px;">' . qm_text_to_html($replyContent) . '</div>';
     qm_send_mail($to, $subject, $body, $html);
+}
+
+/**
+ * 评论者头像地址（Cravatar / Gravatar 镜像）
+ * 仅使用邮箱 md5，不暴露邮箱本身
+ */
+function qm_avatar_url($email = '', $size = 40) {
+    $hash = md5(strtolower(trim((string)$email)));
+    return 'https://cravatar.com/avatar/' . $hash . '?s=' . (int)$size . '&d=mp';
+}
+
+/**
+ * 获取友链列表（应用排序：name 按名称 / random 每次随机）
+ */
+function get_links_ordered() {
+    $links = load_links();
+    if ((string)get_setting('links_order', 'name') === 'random') {
+        shuffle($links);
+        return $links;
+    }
+    usort($links, function ($a, $b) {
+        return strcmp(mb_strtolower((string)($a['name'] ?? '')), mb_strtolower((string)($b['name'] ?? '')));
+    });
+    return $links;
+}
+
+/**
+ * 上次邮件发送失败的具体原因（后台测试邮件展示用）
+ */
+function qm_mail_last_error() {
+    return isset($GLOBALS['qm_mail_error']) ? (string)$GLOBALS['qm_mail_error'] : '';
 }

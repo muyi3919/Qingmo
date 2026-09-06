@@ -177,6 +177,7 @@ class QmSmtp {
  * @return bool 是否成功
  */
 function qm_send_mail($to, $subject, $text, $html = null) {
+    $GLOBALS['qm_mail_error'] = ''; // 每次发送先清空上次错误
     $mode = get_setting('mailer_mode', 'php');
     $host = trim((string)get_setting('smtp_host', ''));
     $from = trim((string)get_setting('smtp_from', ''));
@@ -193,24 +194,38 @@ function qm_send_mail($to, $subject, $text, $html = null) {
             (string)get_setting('smtp_user', ''),
             (string)get_setting('smtp_pass', '')
         );
-        if (!$smtp->connect()) return false;
+        if (!$smtp->connect()) {
+            $GLOBALS['qm_mail_error'] = $smtp->lastError !== '' ? $smtp->lastError : 'SMTP 连接失败';
+            return false;
+        }
         if (!$smtp->login()) {
+            $GLOBALS['qm_mail_error'] = $smtp->lastError !== '' ? $smtp->lastError : 'SMTP 登录失败（检查账号/授权码）';
             $smtp->quit();
             return false;
         }
         $ok = $smtp->sendMail($from, $fromName, $to, $subject, $text, $html);
         $smtp->quit();
+        if (!$ok) {
+            $GLOBALS['qm_mail_error'] = $smtp->lastError !== '' ? $smtp->lastError : 'SMTP 发送被服务器拒绝';
+        }
         return (bool)$ok;
     }
 
     // 回退 PHP mail()
-    if (!function_exists('mail')) return false;
+    if (!function_exists('mail')) {
+        $GLOBALS['qm_mail_error'] = '服务器未启用 PHP mail() 函数，请改用 SMTP 方式';
+        return false;
+    }
     $subjectEnc = '=?UTF-8?B?' . base64_encode($subject) . '?=';
     $headers = 'From: ' . $fromName . ' <' . $from . ">\r\n"
         . 'Content-Type: text/plain; charset=UTF-8' . "\r\n"
         . 'MIME-Version: 1.0' . "\r\n";
     $text = str_replace("\n.", "\n..", $text); // 防邮件注入
-    return @mail(is_array($to) ? implode(',', $to) : $to, $subjectEnc, $text, $headers);
+    $ok = @mail(is_array($to) ? implode(',', $to) : $to, $subjectEnc, $text, $headers);
+    if (!$ok) {
+        $GLOBALS['qm_mail_error'] = 'PHP mail() 调用返回失败（服务器可能禁用了 mail 发信）';
+    }
+    return $ok;
 }
 
 /**

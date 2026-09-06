@@ -122,9 +122,9 @@ save_comments([
 
 // 5.5 友链示例（可在后台「友链」中管理）
 save_links([
-    ['id' => 1, 'name' => '轻墨项目主页', 'url' => 'https://kina.ink', 'description' => '轻墨(Qingmo)纯文件博客系统的作者主页。', 'created_at' => time()],
-    ['id' => 2, 'name' => 'PHP 官方手册', 'url' => 'https://www.php.net/manual/zh/', 'description' => '学习 PHP 必不可少的官方中文手册。', 'created_at' => time()],
-    ['id' => 3, 'name' => 'MDN Web Docs', 'url' => 'https://developer.mozilla.org/zh-CN/', 'description' => 'Web 开发权威文档，HTML/CSS/JS 一站查。', 'created_at' => time()],
+    ['id' => 1, 'name' => '轻墨项目主页', 'url' => 'https://kina.ink', 'category' => '朋友', 'icon' => 'https://kina.ink/favicon.ico', 'description' => '轻墨(Qingmo)纯文件博客系统的作者主页。', 'created_at' => time()],
+    ['id' => 2, 'name' => 'PHP 官方手册', 'url' => 'https://www.php.net/manual/zh/', 'category' => '资源', 'icon' => 'https://www.php.net/favicon.ico', 'description' => '学习 PHP 必不可少的官方中文手册。', 'created_at' => time()],
+    ['id' => 3, 'name' => 'MDN Web Docs', 'url' => 'https://developer.mozilla.org/zh-CN/', 'category' => '资源', 'icon' => 'https://developer.mozilla.org/favicon-48x48.png', 'description' => 'Web 开发权威文档，HTML/CSS/JS 一站查。', 'created_at' => time()],
 ]);
 
 // 6. 关于页面

@@ -39,15 +39,20 @@
             </ul>
         </div>
         <?php
-        // 友链小部件（有数据才显示）
-        $sidebarLinks = load_links();
+        // 友链小部件（有数据才显示；排序：名称 / 随机）
+        $sidebarLinks = array_slice(get_links_ordered(), 0, 10);
         if ($sidebarLinks):
         ?>
         <div class="box">
             <h3>友情链接</h3>
             <ul class="friend-links-sidebar">
-                <?php foreach (array_slice($sidebarLinks, 0, 10) as $fl): ?>
-                    <li><a href="<?php echo e($fl['url']); ?>" target="_blank" rel="noopener nofollow"><?php echo e($fl['name']); ?></a></li>
+                <?php foreach ($sidebarLinks as $fl): ?>
+                    <li>
+                        <?php if (!empty($fl['icon'])): ?>
+                            <img src="<?php echo e($fl['icon']); ?>" alt="" style="width:16px;height:16px;border-radius:3px;vertical-align:-3px;margin-right:4px;" onerror="this.style.display='none'">
+                        <?php endif; ?>
+                        <a href="<?php echo e($fl['url']); ?>" target="_blank" rel="noopener nofollow"><?php echo e($fl['name']); ?></a>
+                    </li>
                 <?php endforeach; ?>
             </ul>
         </div>

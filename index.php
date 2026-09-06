@@ -201,13 +201,23 @@ switch ($page) {
                     return $mm[0];
                 }, $text);
             };
-            // 递归渲染评论（含子回复）
-            $renderComment = function ($node, $depth = 0) use (&$renderComment, $highlightAt) {
-                if ($depth > 3) return; // 超过 3 层不再展开
+            // 统计某节点下所有子孙评论数
+            $countKids = function ($nodes) use (&$countKids) {
+                $n = 0;
+                foreach ($nodes as $c) {
+                    $n += 1 + $countKids($c['children'] ?? []);
+                }
+                return $n;
+            };
+            // 递归渲染评论（支持任意层深；子回复默认折叠，点「展开回复」逐层展开）
+            $renderComment = function ($node, $depth = 0) use (&$renderComment, &$countKids, $highlightAt) {
                 $parentId = (int)($node['parent_id'] ?? 0);
+                $avatarUrl = qm_avatar_url((string)($node['author_email'] ?? ''), 40);
                 ?>
-                <div class="comment-item comment-depth-<?php echo min($depth, 3); ?><?php echo $parentId ? ' is-reply' : ''; ?>" id="comment-<?php echo (int)$node['id']; ?>">
+                <div class="comment-item comment-depth-<?php echo min($depth, 6); ?><?php echo $parentId ? ' is-reply' : ''; ?>" id="comment-<?php echo (int)$node['id']; ?>">
                     <div class="comment-meta">
+                        <img class="comment-avatar" src="<?php echo e($avatarUrl); ?>" alt="" width="26" height="26" loading="lazy"
+                            style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:6px;">
                         <?php if ($parentId): ?><span class="reply-badge">回复</span><?php endif; ?>
                         <strong><?php echo e($node['author_name']); ?></strong>
                         <?php if (!empty($node['author_url'])): ?>
@@ -223,7 +233,10 @@ switch ($page) {
                         <button type="button" class="reply-btn" data-id="<?php echo (int)$node['id']; ?>" data-name="<?php echo e($node['author_name']); ?>">↩ 回复</button>
                     <?php endif; ?>
                     <?php if (!empty($node['children'])): ?>
-                        <div class="comment-children">
+                        <?php $kidsCount = $countKids($node['children']); ?>
+                        <button type="button" class="qm-replies-toggle" data-target="kids-<?php echo (int)$node['id']; ?>" data-count="<?php echo $kidsCount; ?>" aria-expanded="false"
+                            style="margin:6px 0 2px;border:1px dashed #ccc;background:transparent;font-size:12px;padding:2px 12px;border-radius:999px;cursor:pointer;color:#888;">展开回复（<?php echo $kidsCount; ?> 条）</button>
+                        <div class="comment-children" id="kids-<?php echo (int)$node['id']; ?>" style="display:none;">
                             <?php foreach ($node['children'] as $child) $renderComment($child, $depth + 1); ?>
                         </div>
                     <?php endif; ?>
@@ -319,6 +332,21 @@ switch ($page) {
                     contentInput.setSelectionRange(s + ins.length, s + ins.length);
                 });
             }
+        })();
+        // 回复折叠/展开（楼层默认收起）
+        (function () {
+            document.addEventListener('click', function (e) {
+                var btn = e.target.closest ? e.target.closest('.qm-replies-toggle') : null;
+                if (!btn) return;
+                var div = document.getElementById(btn.getAttribute('data-target'));
+                if (!div) return;
+                var isOpen = div.style.display !== 'none';
+                div.style.display = isOpen ? 'none' : '';
+                btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+                btn.textContent = isOpen
+                    ? '展开回复（' + (btn.getAttribute('data-count') || '') + ' 条）'
+                    : '收起回复';
+            });
         })();
         </script>
         <?php
@@ -417,9 +445,9 @@ switch ($page) {
         break;
 
     case 'links':
-        // 友情链接页
+        // 友情链接页（按分类分组，支持图标；排序受“站点设置→友链排序”控制）
         $pageTitle = '友情链接';
-        $links = load_links();
+        $links = get_links_ordered();
         include 'includes/header.php';
         echo '<div class="links-page">';
         echo '<h2>友情链接</h2>';
@@ -427,17 +455,30 @@ switch ($page) {
             echo '<p>暂无友情链接，欢迎联系站长交换友链。</p>';
         } else {
             echo '<p class="links-count">共收录 ' . count($links) . ' 个站点：</p>';
-            echo '<div class="friend-links">';
-            foreach ($links as $fl):
-                ?>
+            // 分组：category（空归为“其它”）
+            $groups = [];
+            foreach ($links as $fl) {
+                $cat = trim((string)($fl['category'] ?? ''));
+                if ($cat === '') $cat = '其它';
+                $groups[$cat][] = $fl;
+            }
+            foreach ($groups as $catName => $catLinks):
+                echo '<h3 class="links-group-title" style="margin:18px 0 8px;font-size:16px;">' . e($catName) . '（' . count($catLinks) . '）</h3>';
+                echo '<div class="friend-links">';
+                foreach ($catLinks as $fl): ?>
                 <div class="friend-link">
+                    <?php if (!empty($fl['icon'])): ?>
+                        <img class="friend-link-icon" src="<?php echo e($fl['icon']); ?>" alt="" loading="lazy"
+                            style="width:28px;height:28px;border-radius:6px;vertical-align:-6px;margin-right:6px;" onerror="this.style.display='none'">
+                    <?php endif; ?>
                     <a class="friend-link-name" href="<?php echo e($fl['url']); ?>" target="_blank" rel="noopener nofollow"><?php echo e($fl['name']); ?></a>
                     <?php if (!empty($fl['description'])): ?>
                         <p class="friend-link-desc"><?php echo e($fl['description']); ?></p>
                     <?php endif; ?>
                 </div>
             <?php endforeach;
-            echo '</div>';
+                echo '</div>';
+            endforeach;
         }
         echo '</div>';
         include 'includes/footer.php';

@@ -2,8 +2,17 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.3.4-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.4.0-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.4.0
+
+- ✅ **邮件发送明确化**：SMTP/PHP mail 失败现在给出具体原因（连接失败/登录失败/被服务器拒绝/mail 不可用），测试邮件成功/失败都有明确提示与排查建议
+- ✅ **友链增强**：友链支持 **分类** 与 **图标**；友链页按分类分组展示；站点设置新增「按名称 / 每次刷新随机」排序
+- ✅ **评论区头像**：每条评论显示 Cravatar/Gravatar 头像（邮箱 md5，不暴露邮箱）
+- ✅ **评论无限叠楼 + 默认折叠**：取消 3 层限制可任意深；子回复默认收起，点「展开回复(N 条)」逐层展开/收起
 
 ---
 
