@@ -227,7 +227,7 @@ switch ($page) {
                     </div>
                     <?php do_action('qm_comment_meta', $node); // 插件扩展点：评论归属地等小徽标 ?>
                     <div class="comment-content">
-                        <?php echo $highlightAt(qm_emotions_render_html(nl2br(e($node['content'])))); ?>
+                        <?php echo $highlightAt(qm_emotions_render_html(md_to_html($node['content']))); // 评论支持 Markdown ?>
                     </div>
                     <?php if (get_setting('allow_comments', '1') == '1'): ?>
                         <button type="button" class="reply-btn" data-id="<?php echo (int)$node['id']; ?>" data-name="<?php echo e($node['author_name']); ?>">↩ 回复</button>
@@ -258,6 +258,25 @@ switch ($page) {
                 $g = json_decode(base64_decode((string)$_COOKIE['qm_guest']), true);
                 if (is_array($g)) $qmGuest = $g + $qmGuest;
             }
+            // B站风格随机俏皮话（评论框占位提示，每次聚焦随机换一句）
+            $qmCommentTips = [
+                '前方高能，请文明发言~',
+                '来了来了，前排围观',
+                '妙啊，说点什么好呢',
+                '一键三连了吗？没有就评论吧',
+                '这波不亏，先评为敬',
+                '报告！发现一枚小可爱',
+                '弹幕护体，友善发言',
+                '活捉一只野生评论员',
+                '教练，我想学这个！',
+                '评论区人均大佬，怕了怕了',
+                '今天也在认真水评论呢',
+                '让我康康是谁在评论',
+                '本评论区由你守护',
+                '文化人说话就是不一样',
+                '别潜水啦，出来冒个泡',
+            ];
+            $qmCommentTip = $qmCommentTips[array_rand($qmCommentTips)] . '（支持md格式哦）';
             ?>
             <div class="comment-form" id="commentFormBox">
                 <h4 id="commentFormTitle">发表评论</h4>
@@ -272,7 +291,7 @@ switch ($page) {
                     <input type="text" name="author_url" value="<?php echo e($qmGuest['u']); ?>" placeholder="http://">
                     <label>内容 *</label>
                     <?php echo qm_emotion_picker_html(); ?>
-                    <textarea name="content" id="commentContent" required placeholder="友善发言，理性讨论~"></textarea>
+                    <textarea name="content" id="commentContent" required placeholder="<?php echo e($qmCommentTip); ?>"></textarea>
                     <input type="submit" value="提交评论">
                     <button type="button" id="commentCancelReply" style="display:none;">取消回复</button>
                 </form>
@@ -308,6 +327,18 @@ switch ($page) {
                 title.textContent = '发表评论';
                 cancelBtn.style.display = 'none';
             });
+            // B站风格：每次聚焦评论框，占位提示随机换一句（后缀固定提示 md）
+            var qmCommentTips = <?php echo isset($qmCommentTips) ? json_encode(array_map(function ($t) { return $t . '（支持md格式哦）'; }, $qmCommentTips), JSON_UNESCAPED_UNICODE) : '[]'; ?>;
+            if (qmCommentTips.length && contentInput) {
+                contentInput.addEventListener('focus', function () {
+                    var cur = contentInput.placeholder || '';
+                    var next = qmCommentTips[Math.floor(Math.random() * qmCommentTips.length)];
+                    if (cur === next && qmCommentTips.length > 1) {
+                        next = qmCommentTips[(qmCommentTips.indexOf(next) + 1) % qmCommentTips.length];
+                    }
+                    contentInput.placeholder = next;
+                });
+            }
             // 表情包：可折叠，点击按钮展开/收起面板
             var emotionToggle = document.getElementById('emotionToggle');
             var emotionPanel = document.getElementById('emotionPanel');
@@ -331,6 +362,26 @@ switch ($page) {
                     contentInput.focus();
                     contentInput.setSelectionRange(s + ins.length, s + ins.length);
                 });
+                // 表情包：顶部分类名 tab 切换，下方只显示当前组的表情
+                var emotionTabs = emotionPanel.querySelectorAll('.emotion-tab');
+                var emotionPages = emotionPanel.querySelectorAll('.emotion-page');
+                if (emotionTabs.length > 1) {
+                    emotionTabs.forEach(function (tab) {
+                        tab.addEventListener('click', function () {
+                            var g = tab.getAttribute('data-group');
+                            emotionTabs.forEach(function (t) {
+                                var on = t.getAttribute('data-group') === g;
+                                t.style.borderColor = on ? '#3a3a3a' : '#d8d8d8';
+                                t.style.background = on ? '#3a3a3a' : '#fff';
+                                t.style.color = on ? '#fff' : '#777';
+                                t.setAttribute('aria-selected', on ? 'true' : 'false');
+                            });
+                            emotionPages.forEach(function (p) {
+                                p.style.display = p.getAttribute('data-group') === g ? 'flex' : 'none';
+                            });
+                        });
+                    });
+                }
             }
         })();
         // 回复折叠/展开（楼层默认收起）

@@ -2,8 +2,19 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.5.0
+
+- ✅ **内置 B站小黄脸表情（194 枚）**：图片随系统内置在 `assets/emotions/bilibili`，评论框表情面板新增「B站」分组，输入 `:doge:` `:huaji:` `:ciya:` 等即渲染；另含 74 个补充表情（`:bili-extra-N:`）；素材为 GPLv3/第三方适配（见 `includes/emotion-bilibili.php` 顶部注释，图片版权归 Bilibili）
+- ✅ **表情面板改版**：顶部一排分类名 Tab（颜文字 / Emoji / B站…），点击切换只显示当前分组，组再多也不会横向铺开
+- ✅ **图片点击放大（灯箱）**：正文与评论区图片点击全屏查看，支持 ‹ › 翻页、Esc / 点空白 / ✕ 关闭；评论里 Markdown 图片限宽显示（缩略 240px），点开看原图
+- ✅ **评论支持 Markdown**：加粗、链接、行内代码、图片等（图片自动限宽防撑破评论区）
+- ✅ **登录页重做**：全新内嵌样式卡片登录页
+- ✅ **B站风评论框占位提示**：每次聚焦随机换一句俏皮话，并提示「（支持md格式哦）」
 
 ---
 

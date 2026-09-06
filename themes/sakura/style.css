@@ -354,6 +354,11 @@ a:hover { color: var(--accent); }
 .comment-meta { font-size: 12px; color: var(--text-light); }
 .comment-meta strong { color: var(--text); }
 .comment-content { margin-top: 4px; font-size: 14px; color: var(--text-2); }
+/* 图片自适应：全局防撑破版面；评论区缩略显示（可点击放大） */
+img { max-width: 100%; height: auto; }
+.post-content .content img,
+.comment-content img { cursor: zoom-in; }
+.comment-content img { max-width: min(100%, 240px); border-radius: 6px; }
 .reply-badge {
     display: inline-block;
     background: var(--accent-bg);

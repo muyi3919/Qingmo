@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.4.0');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.5.0');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -776,16 +776,37 @@ function delete_link($id) {
 // ---------- Markdown → HTML（轻量渲染，支持常用语法） ----------
 
 /**
+ * URL 安全校验：只允许 http/https/mailto 与站内相对地址，禁止 javascript: 等危险协议
+ */
+function qm_is_safe_url($url) {
+    $url = trim((string)$url);
+    if ($url === '') return false;
+    if (preg_match('#^[a-z][a-z0-9+.\-]*:#i', $url)) {
+        return in_array(strtolower(parse_url($url, PHP_URL_SCHEME)), ['http', 'https', 'mailto'], true);
+    }
+    // 无协议（相对路径 / 站内地址）允许，但开头不能是反斜杠/控制字符
+    return !preg_match('#^(\\\\|[^/])#', $url) || strpos($url, '/') === 0;
+}
+
+/**
  * 行内 Markdown 处理（内部统一转义，避免 XSS 与二次转义）
  */
 function md_inline($text) {
     $text = htmlspecialchars((string)$text, ENT_QUOTES, 'UTF-8');
     // 行内代码（内容已被转义）
     $text = preg_replace('/`([^`]+)`/', '<code>$1</code>', $text);
-    // 图片 ![alt](url)
-    $text = preg_replace('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/', '<img src="$2" alt="$1" loading="lazy">', $text);
-    // 链接 [text](url)
-    $text = preg_replace('/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/', '<a href="$2" target="_blank" rel="noopener nofollow">$1</a>', $text);
+    // 图片 ![alt](url)（仅允许安全协议；尺寸交由 CSS 控制：评论内缩略、正文限宽）
+    $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/', function ($m) {
+        return qm_is_safe_url($m[2])
+            ? '<img class="qm-img" src="' . $m[2] . '" alt="' . $m[1] . '" loading="lazy">'
+            : $m[0];
+    }, $text);
+    // 链接 [text](url)（仅允许安全协议）
+    $text = preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/', function ($m) {
+        return qm_is_safe_url($m[2])
+            ? '<a href="' . $m[2] . '" target="_blank" rel="noopener nofollow">' . $m[1] . '</a>'
+            : $m[0];
+    }, $text);
     // 粗体 **text** / 下划线加粗 __text__
     $text = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $text);
     $text = preg_replace('/__([^_]+)__/', '<strong>$1</strong>', $text);
@@ -817,7 +838,9 @@ function md_to_html($text) {
     };
     $flushPara = function () use (&$html, &$para) {
         if ($para) {
-            $html .= '<p>' . md_inline(implode("\n", $para)) . "</p>\n";
+            // 段内软换行：每行单独行内渲染后用 <br> 连接（类似 GFM）
+            $joined = implode('<br>', array_map('md_inline', $para));
+            $html .= '<p>' . $joined . "</p>\n";
             $para = [];
         }
     };

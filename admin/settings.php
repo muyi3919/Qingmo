@@ -64,9 +64,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $msg = '设置已保存，且测试邮件发送成功（收件人：' . e($testTo) . '）。';
                 } else {
                     $mailErr = qm_mail_last_error();
+                    $is535 = stripos($mailErr, '535') !== false;
+                    $account = trim((string)$config['smtp_user']);
                     $err = '测试邮件发送失败。'
-                        . ($mailErr !== '' ? '<br>具体原因：' . e($mailErr) : '')
-                        . '<br>常见排查：确认服务器能连通 SMTP 服务器与端口；端口 587 用 STARTTLS、465 用 SSL；账号与发件人一致，密码使用“授权码”（QQ/163 需在邮箱后台开启 SMTP）。';
+                        . '<br>登录账号：' . e($account !== '' ? $account : '（未填写！请填写 smtp_user）')
+                        . ($mailErr !== '' ? '<br>服务器返回：' . e($mailErr) : '');
+                    if ($is535) {
+                        $err .= '<br><strong>535 = 认证失败</strong>：① 请使用邮箱「SMTP 授权码」而不是登录密码（QQ/163/126 等需先在邮箱设置里开启 SMTP 并生成授权码）；② 确认账号已开启 SMTP 服务；③ 发件人地址需与登录账号一致。';
+                    }
+                    $err .= '<br>其它排查：确认服务器能连通 SMTP 服务器与端口；端口 587 用 STARTTLS、465 用 SSL；常用服务商：QQ smtp.qq.com / 163 smtp.163.com / Gmail smtp.gmail.com（需应用专用密码）。';
                 }
             }
         }

@@ -180,6 +180,20 @@ a:hover {
     margin-top: 5px;
 }
 
+/* 图片自适应：全局防撑破版面；评论区缩略显示（点击可放大） */
+img {
+    max-width: 100%;
+    height: auto;
+}
+.post-content .content img,
+.comment-content img {
+    cursor: zoom-in;
+}
+.comment-content img {
+    max-width: min(100%, 240px);
+    border-radius: 6px;
+}
+
 .comment-form {
     margin-top: 15px;
     border: 1px solid #ccc;

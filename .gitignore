@@ -17,3 +17,6 @@ Thumbs.db
 
 # 日志
 *.log
+
+# 第三方表情素材插件(本地使用,不入库)
+plugins/argon-emotions/

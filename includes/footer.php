@@ -84,5 +84,93 @@
 })();
 </script>
 <?php endif; ?>
+<script>
+// 轻墨：图片点击放大（评论区/正文），支持 ‹ › 翻页、Esc / 点空白 / ✕ 关闭
+(function () {
+    if (window.__qmZoomLoaded) return;
+    window.__qmZoomLoaded = true;
+
+    function isZoomable(im) {
+        if (im.closest('a, button, label, .emotion-panel')) return false;
+        if (im.classList.contains('comment-avatar')) return false;
+        return !!im.closest('.comment-content, .post-content .content');
+    }
+    function collectFrom(im) {
+        var scope = im.closest('.comment-item, .post-content') || document;
+        var others = Array.prototype.slice.call(scope.querySelectorAll('img')).filter(function (x) {
+            return x !== im && isZoomable(x);
+        });
+        others.unshift(im);
+        return others;
+    }
+
+    var ov = null, cur = [], idx = 0;
+
+    function render() {
+        var big = ov.querySelector('.qm-zoom-img');
+        var cap = ov.querySelector('.qm-zoom-cap');
+        var c = cur[idx];
+        big.src = c.currentSrc || c.src;
+        var t = (c.getAttribute('alt') || '').trim() || (c.getAttribute('title') || '').trim();
+        cap.textContent = cur.length > 1 ? (t ? t + '　' : '') + (idx + 1) + ' / ' + cur.length : t;
+        ov.querySelector('.qm-zoom-prev').style.visibility = cur.length > 1 ? 'visible' : 'hidden';
+        ov.querySelector('.qm-zoom-next').style.visibility = cur.length > 1 ? 'visible' : 'hidden';
+    }
+    function close() {
+        if (!ov) return;
+        document.removeEventListener('keydown', onKey, true);
+        ov.remove();
+        ov = null;
+        document.body.style.overflow = '';
+    }
+    function step(d) {
+        idx = (idx + d + cur.length) % cur.length;
+        render();
+    }
+    function onKey(e) {
+        if (!ov) return;
+        if (e.key === 'Escape') close();
+        else if (e.key === 'ArrowLeft') step(-1);
+        else if (e.key === 'ArrowRight') step(1);
+    }
+    function open(list, start) {
+        cur = list;
+        idx = start;
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.className = 'qm-zoom';
+            ov.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;'
+                + 'background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;flex-direction:column;';
+            ov.innerHTML = '<img class="qm-zoom-img" alt="" style="max-width:92vw;max-height:84vh;object-fit:contain;'
+                + 'border-radius:6px;box-shadow:0 8px 40px rgba(0,0,0,.6);background:#111;">'
+                + '<div class="qm-zoom-cap" style="color:#ccc;font-size:13px;margin-top:12px;max-width:88vw;text-align:center;word-break:break-all;"></div>'
+                + '<button type="button" class="qm-zoom-close" aria-label="关闭" style="position:absolute;top:14px;right:18px;'
+                + 'background:none;border:0;color:#fff;font-size:28px;cursor:pointer;line-height:1;">✕</button>'
+                + '<button type="button" class="qm-zoom-prev" aria-label="上一张" style="position:absolute;left:14px;top:50%;'
+                + 'transform:translateY(-50%);background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:50%;'
+                + 'width:44px;height:44px;font-size:20px;cursor:pointer;">‹</button>'
+                + '<button type="button" class="qm-zoom-next" aria-label="下一张" style="position:absolute;right:14px;top:50%;'
+                + 'transform:translateY(-50%);background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:50%;'
+                + 'width:44px;height:44px;font-size:20px;cursor:pointer;">›</button>';
+            ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+            ov.querySelector('.qm-zoom-close').addEventListener('click', function (e) { e.stopPropagation(); close(); });
+            ov.querySelector('.qm-zoom-prev').addEventListener('click', function (e) { e.stopPropagation(); step(-1); });
+            ov.querySelector('.qm-zoom-next').addEventListener('click', function (e) { e.stopPropagation(); step(1); });
+            document.body.appendChild(ov);
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', onKey, true);
+        }
+        render();
+    }
+
+    document.addEventListener('click', function (e) {
+        var im = e.target;
+        if (!im || im.tagName !== 'IMG' || !isZoomable(im)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        open(collectFrom(im), 0);
+    }, true);
+})();
+</script>
 </body>
 </html>

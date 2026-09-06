@@ -111,6 +111,11 @@ a:hover { color: #c0504d; text-decoration: underline; }
 .comment-item { border-bottom: 1px dashed #e3ddd2; padding: 10px 0; }
 .comment-item .comment-meta { font-size: 12px; color: #8a8274; }
 .comment-item .comment-content { margin-top: 5px; font-size: 14px; }
+/* 图片自适应：全局防撑破版面；评论区缩略显示（可点击放大） */
+img { max-width: 100%; height: auto; }
+.post-content .content img,
+.comment-content img { cursor: zoom-in; }
+.comment-content img { max-width: min(100%, 240px); border-radius: 6px; }
 
 .comment-form {
     margin-top: 16px;
