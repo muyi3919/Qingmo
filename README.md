@@ -2,8 +2,15 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.5.3-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.6.0-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.6.0
+
+- ✅ **免刷新实时评论/文章（AJAX 轮询）**：文章页每 ~12 秒自动检测新评论并直接上屏（评论数同步、已展开的楼层保留），首页/归档每 ~45 秒检测新文章自动上屏；页面在后台标签时自动暂停省流量
+- ✅ 评论树与文章列表渲染抽成公共函数（`qm_render_comment_items` 等），新增轻量 JSON 接口 `index.php?page=ajax`；"回复"按钮改为事件委托，动态刷出的评论可直接回复
 
 ---
 

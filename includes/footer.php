@@ -85,6 +85,83 @@
 </script>
 <?php endif; ?>
 <script>
+// 轻墨：免刷新自动更新（新评论 ~12s / 新文章 ~45s 自动上屏，无需手动刷新）
+(function () {
+    if (window.__qmAutoRefresh) return;
+    window.__qmAutoRefresh = true;
+    var pageHidden = false;
+    document.addEventListener('visibilitychange', function () {
+        pageHidden = document.hidden;
+    });
+
+    function poll(url, onGot) {
+        if (pageHidden) return;
+        fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { if (d && d.ok) onGot(d); })
+            .catch(function () { /* 网络抖动忽略 */ });
+    }
+
+    // ---------- 新评论自动上屏 ----------
+    var area = document.getElementById('qmCommentArea');
+    if (area && area.getAttribute('data-post')) {
+        var postId = area.getAttribute('data-post');
+        var lastCount = parseInt(area.getAttribute('data-count') || '0', 10);
+        var busy = false;
+        function refreshComments() {
+            if (busy) return;
+            busy = true;
+            poll('index.php?page=ajax&act=comments&id=' + encodeURIComponent(postId), function (d) {
+                busy = false;
+                if (typeof d.count === 'number' && d.count !== lastCount && typeof d.html === 'string') {
+                    // 记住用户正展开着哪些楼，刷新后原样展开
+                    var openKids = [];
+                    area.querySelectorAll('.qm-replies-toggle[aria-expanded="true"]').forEach(function (b) {
+                        openKids.push(b.getAttribute('data-target'));
+                    });
+                    area.innerHTML = d.html;
+                    lastCount = d.count;
+                    openKids.forEach(function (id) {
+                        var b = area.querySelector('.qm-replies-toggle[data-target="' + id + '"]');
+                        var box = document.getElementById(id);
+                        if (b && box) {
+                            b.setAttribute('aria-expanded', 'true');
+                            box.style.display = '';
+                        }
+                    });
+                }
+            });
+        }
+        setInterval(refreshComments, 12000);
+    }
+
+    // ---------- 新文章自动上屏（首页/归档第 1 页内） ----------
+    var list = document.getElementById('qmPostList');
+    var listInner = document.getElementById('qmPostListInner');
+    if (list && listInner) {
+        var route = list.getAttribute('data-page') || 'home';
+        var num = parseInt(list.getAttribute('data-num') || '1', 10);
+        var lastTotal = -1;
+        var busy2 = false;
+        function refreshPosts() {
+            if (busy2) return;
+            busy2 = true;
+            poll('index.php?page=ajax&act=posts&route=' + encodeURIComponent(route) + '&num=' + num, function (d) {
+                busy2 = false;
+                if (typeof d.total === 'number') {
+                    if (lastTotal === -1) { lastTotal = d.total; return; }
+                    if (d.total !== lastTotal && typeof d.html === 'string') {
+                        listInner.innerHTML = d.html;
+                        lastTotal = d.total;
+                    }
+                }
+            });
+        }
+        setInterval(refreshPosts, 45000);
+    }
+})();
+</script>
+<script>
 // 轻墨：图片点击放大（评论区/正文），支持 ‹ › 翻页、Esc / 点空白 / ✕ 关闭
 (function () {
     if (window.__qmZoomLoaded) return;

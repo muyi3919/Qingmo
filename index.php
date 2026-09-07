@@ -10,6 +10,31 @@ if (!file_exists(DATA_DIR . '/config.php') && basename($_SERVER['PHP_SELF']) !==
 
 $page = $_GET['page'] ?? 'home';
 
+// ===== 免刷新 AJAX 接口（新评论 / 新文章，返回 JSON）=====
+if ($page === 'ajax') {
+    header('Content-Type: application/json; charset=utf-8');
+    $act = $_GET['act'] ?? '';
+    $out = ['ok' => false];
+    if ($act === 'comments') {
+        $cid = (int)($_GET['id'] ?? 0);
+        $cpost = load_post($cid);
+        if ($cpost && ($cpost['status'] ?? 0) == 1) {
+            $ct = build_comment_tree($cid);
+            $n = count($ct['by_id'] ?? []);
+            $inner = '<h3>评论 (' . $n . ')</h3>' . "\n";
+            $inner .= $n > 0 ? qm_render_comment_items($ct, $n) : '<p class="comment-empty">还没有评论，来抢沙发吧~</p>' . "\n";
+            $out = ['ok' => true, 'count' => $n, 'html' => $inner];
+        }
+    } elseif ($act === 'posts') {
+        $route = (($_GET['route'] ?? 'home') === 'archive') ? 'archive' : 'home';
+        $num = max(1, (int)($_GET['num'] ?? 1));
+        $r = qm_render_posts_list_page($route, $num);
+        $out = ['ok' => true, 'total' => $r['total'], 'html' => $r['html']];
+    }
+    echo json_encode($out, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 switch ($page) {
     case 'home':
     case 'archive':
@@ -24,37 +49,13 @@ switch ($page) {
         $pageTitle = $page === 'archive' ? '文章归档' : '首页';
         include 'includes/header.php';
         
-        echo '<div class="post-list">';
+        echo '<div class="post-list" id="qmPostList" data-page="' . e($page) . '" data-num="' . $p . '">';
         if ($page === 'archive') {
             echo '<h2>文章归档</h2>';
         }
-        foreach ($posts as $post):
-            $cats = load_categories();
-            $catMap = array_column($cats, 'name', 'id');
-            $tags = get_post_tags($post['id']);
-        ?>
-            <div class="post-item">
-                <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?></a></h2>
-                <div class="post-meta">
-                    发表于 <?php echo format_date($post['created_at']); ?> | 
-                    分类：<a href="index.php?page=category&id=<?php echo $post['category_id']; ?>"><?php echo e($catMap[$post['category_id']] ?? '未分类'); ?></a> | 
-                    评论：<?php echo $post['comment_count']; ?> | 
-                    阅读：<?php echo $post['view_count']; ?>
-                </div>
-                <div class="post-summary">
-                    <?php echo $post['summary'] ?: make_summary($post['content'], 200); ?>
-                </div>
-                <?php if ($tags): ?>
-                <div class="tag-list">
-                    标签：
-                    <?php foreach ($tags as $i => $tag): ?>
-                        <a href="index.php?page=tag&slug=<?php echo urlencode($tag['slug']); ?>"><?php echo e($tag['name']); ?></a><?php if ($i < count($tags) - 1) echo ', '; ?>
-                    <?php endforeach; ?>
-                </div>
-                <?php endif; ?>
-            </div>
-        <?php endforeach; 
-        echo pagination_html($pg, 'index.php?page=' . $page);
+        echo '<div id="qmPostListInner">';
+        echo qm_render_posts_list_page($page, $p, $perPage)['html'];
+        echo '</div>';
         echo '</div>';
         
         include 'includes/footer.php';
@@ -183,81 +184,15 @@ switch ($page) {
         </div>
         
         <div class="comment-list">
+            <div id="qmCommentArea" data-post="<?php echo $id; ?>" data-count="<?php echo $totalComments; ?>">
             <h3>评论 (<?php echo $totalComments; ?>)</h3>
             <?php if ($msg): ?>
                 <div class="msg <?php echo (strpos($msg, '成功') !== false || strpos($msg, '审核') !== false) ? 'success' : 'error'; ?>">
                     <?php echo e($msg); ?>
                 </div>
             <?php endif; ?>
-
-            <?php
-            // @昵称 → 对应评论锚点（用于高亮与定位）
-            $commentAnchor = [];
-            foreach ($commentTree['by_id'] as $cc) {
-                $k = mb_strtolower((string)($cc['author_name'] ?? ''));
-                if ($k !== '' && !isset($commentAnchor[$k])) $commentAnchor[$k] = (int)$cc['id'];
-            }
-            $highlightAt = function ($text) use ($commentAnchor) {
-                return preg_replace_callback('/@([\p{L}\p{N}_\-]{1,24})/u', function ($mm) use ($commentAnchor) {
-                    $key = mb_strtolower($mm[1]);
-                    if (isset($commentAnchor[$key])) {
-                        return '<a class="at-mention" href="#comment-' . $commentAnchor[$key] . '">@' . $mm[1] . '</a>';
-                    }
-                    return $mm[0];
-                }, $text);
-            };
-            // 评论内 Markdown 图片：内联限宽兜底（不依赖 CSS，旧缓存/换主题也不撑爆）
-            $qmCommentImgCap = function ($html) {
-                return preg_replace('/(<img class="qm-img")/', '$1 style="max-width:240px;height:auto;vertical-align:middle;"', (string)$html);
-            };
-            // 统计某节点下所有子孙评论数
-            $countKids = function ($nodes) use (&$countKids) {
-                $n = 0;
-                foreach ($nodes as $c) {
-                    $n += 1 + $countKids($c['children'] ?? []);
-                }
-                return $n;
-            };
-            // 递归渲染评论（支持任意层深；子回复默认折叠，点「展开回复」逐层展开）
-            $renderComment = function ($node, $depth = 0) use (&$renderComment, &$countKids, $highlightAt, $qmCommentImgCap) {
-                $parentId = (int)($node['parent_id'] ?? 0);
-                $avatarUrl = qm_avatar_url((string)($node['author_email'] ?? ''), 40);
-                ?>
-                <div class="comment-item comment-depth-<?php echo min($depth, 6); ?><?php echo $parentId ? ' is-reply' : ''; ?>" id="comment-<?php echo (int)$node['id']; ?>">
-                    <div class="comment-meta">
-                        <img class="comment-avatar" src="<?php echo e($avatarUrl); ?>" alt="" width="26" height="26" loading="lazy"
-                            style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:6px;">
-                        <?php if ($parentId): ?><span class="reply-badge">回复</span><?php endif; ?>
-                        <strong><?php echo e($node['author_name']); ?></strong>
-                        <?php if (!empty($node['author_url'])): ?>
-                            (<a href="<?php echo e($node['author_url']); ?>" target="_blank" rel="noopener nofollow">主页</a>)
-                        <?php endif; ?>
-                        发表于 <?php echo format_date($node['created_at']); ?>
-                    </div>
-                    <?php do_action('qm_comment_meta', $node); // 插件扩展点：评论归属地等小徽标 ?>
-                    <div class="comment-content">
-                        <?php echo $highlightAt(qm_emotions_render_html($qmCommentImgCap(md_to_html($node['content'])))); // 评论支持 Markdown，md 图片内联限宽 ?>
-                    </div>
-                    <?php if (get_setting('allow_comments', '1') == '1'): ?>
-                        <button type="button" class="reply-btn" data-id="<?php echo (int)$node['id']; ?>" data-name="<?php echo e($node['author_name']); ?>">↩ 回复</button>
-                    <?php endif; ?>
-                    <?php if (!empty($node['children'])): ?>
-                        <?php $kidsCount = $countKids($node['children']); ?>
-                        <button type="button" class="qm-replies-toggle" data-target="kids-<?php echo (int)$node['id']; ?>" data-count="<?php echo $kidsCount; ?>" aria-expanded="false"
-                            style="margin:6px 0 2px;border:1px dashed #ccc;background:transparent;font-size:12px;padding:2px 12px;border-radius:999px;cursor:pointer;color:#888;">展开回复（<?php echo $kidsCount; ?> 条）</button>
-                        <div class="comment-children" id="kids-<?php echo (int)$node['id']; ?>" style="display:none;">
-                            <?php foreach ($node['children'] as $child) $renderComment($child, $depth + 1); ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <?php
-            };
-            if ($totalComments > 0):
-                foreach ($commentTree['top'] as $topNode) $renderComment($topNode, 0);
-            else:
-            ?>
-                <p class="comment-empty">还没有评论，来抢沙发吧~</p>
-            <?php endif; ?>
+            <?php echo $totalComments > 0 ? qm_render_comment_items($commentTree, $totalComments) : '<p class="comment-empty">还没有评论，来抢沙发吧~</p>'; ?>
+            </div>
 
             <?php if (get_setting('allow_comments', '1') == '1'): ?>
             <?php
@@ -320,15 +255,16 @@ switch ($page) {
             var contentInput = document.getElementById('commentContent');
             var replyToName = '';
 
-            document.querySelectorAll('.reply-btn').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    parentId.value = btn.getAttribute('data-id');
-                    replyToName = btn.getAttribute('data-name') || '';
-                    title.textContent = '回复 @' + replyToName;
-                    cancelBtn.style.display = 'inline-block';
-                    document.getElementById('commentFormBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    contentInput.focus();
-                });
+            // 回复按钮：事件委托（AJAX 刷新出新评论后依然可用）
+            document.addEventListener('click', function (e) {
+                var btn = e.target && e.target.closest ? e.target.closest('.reply-btn') : null;
+                if (!btn || !document.body.contains(btn)) return;
+                parentId.value = btn.getAttribute('data-id');
+                replyToName = btn.getAttribute('data-name') || '';
+                title.textContent = '回复 @' + replyToName;
+                cancelBtn.style.display = 'inline-block';
+                document.getElementById('commentFormBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                contentInput.focus();
             });
             cancelBtn.addEventListener('click', function () {
                 parentId.value = '0';

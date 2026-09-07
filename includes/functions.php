@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.5.3');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.6.0');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -1125,4 +1125,113 @@ function get_links_ordered() {
  */
 function qm_mail_last_error() {
     return isset($GLOBALS['qm_mail_error']) ? (string)$GLOBALS['qm_mail_error'] : '';
+}
+
+/* ============================================================
+ * AJAX 免刷新渲染辅助（评论列表 / 文章列表可被页面与接口复用）
+ * ============================================================ */
+
+/**
+ * 渲染某文章的评论树 HTML（顶层 + 递归子回复，折叠逻辑与前台一致）
+ */
+function qm_render_comment_items($tree, $totalComments) {
+    $out = '';
+    if ($totalComments <= 0) return $out;
+    $anchor = [];
+    foreach ($tree['by_id'] as $cc) {
+        $k = mb_strtolower((string)($cc['author_name'] ?? ''));
+        if ($k !== '' && !isset($anchor[$k])) $anchor[$k] = (int)$cc['id'];
+    }
+    $hl = function ($text) use ($anchor) {
+        return preg_replace_callback('/@([\p{L}\p{N}_\-]{1,24})/u', function ($mm) use ($anchor) {
+            $key = mb_strtolower($mm[1]);
+            if (isset($anchor[$key])) {
+                return '<a class="at-mention" href="#comment-' . $anchor[$key] . '">@' . $mm[1] . '</a>';
+            }
+            return $mm[0];
+        }, $text);
+    };
+    $cap = function ($html) {
+        return preg_replace('/(<img class="qm-img")/', '$1 style="max-width:240px;height:auto;vertical-align:middle;"', (string)$html);
+    };
+    $countKids = function ($nodes) use (&$countKids) {
+        $n = 0;
+        foreach ($nodes as $c) $n += 1 + $countKids($c['children'] ?? []);
+        return $n;
+    };
+    $render = function ($node, $depth = 0) use (&$render, &$out, $countKids, $hl, $cap) {
+        $parentId = (int)($node['parent_id'] ?? 0);
+        $avatarUrl = qm_avatar_url((string)($node['author_email'] ?? ''), 40);
+        $allow = get_setting('allow_comments', '1');
+        $out .= '<div class="comment-item comment-depth-' . min($depth, 6) . ($parentId ? ' is-reply' : '') . '" id="comment-' . (int)$node['id'] . '">' . "\n";
+        $out .= '<div class="comment-meta">'
+            . '<img class="comment-avatar" src="' . e($avatarUrl) . '" alt="" width="26" height="26" loading="lazy" style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:6px;">'
+            . ($parentId ? '<span class="reply-badge">回复</span>' : '')
+            . '<strong>' . e($node['author_name']) . '</strong>';
+        if (!empty($node['author_url'])) {
+            $out .= '(<a href="' . e($node['author_url']) . '" target="_blank" rel="noopener nofollow">主页</a>)';
+        }
+        $out .= '发表于 ' . format_date($node['created_at']) . '</div>' . "\n";
+        ob_start();
+        do_action('qm_comment_meta', $node); // 归属地等插件徽标
+        $out .= ob_get_clean();
+        $out .= '<div class="comment-content">' . $hl(qm_emotions_render_html($cap(md_to_html((string)$node['content'])))) . '</div>' . "\n";
+        if ($allow == '1') {
+            $out .= '<button type="button" class="reply-btn" data-id="' . (int)$node['id'] . '" data-name="' . e($node['author_name']) . '">↩ 回复</button>' . "\n";
+        }
+        if (!empty($node['children'])) {
+            $kidsCount = $countKids($node['children']);
+            $out .= '<button type="button" class="qm-replies-toggle" data-target="kids-' . (int)$node['id'] . '" data-count="' . $kidsCount . '" aria-expanded="false"'
+                . ' style="margin:6px 0 2px;border:1px dashed #ccc;background:transparent;font-size:12px;padding:2px 12px;border-radius:999px;cursor:pointer;color:#888;">展开回复（' . $kidsCount . ' 条）</button>' . "\n";
+            $out .= '<div class="comment-children" id="kids-' . (int)$node['id'] . '" style="display:none;">' . "\n";
+            foreach ($node['children'] as $child) $render($child, $depth + 1);
+            $out .= '</div>' . "\n";
+        }
+        $out .= '</div>' . "\n";
+    };
+    foreach ($tree['top'] as $topNode) $render($topNode, 0);
+    return $out;
+}
+
+/**
+ * 渲染一篇文章列表条目（卡片），供首页/归档与 AJAX 复用
+ */
+function qm_render_post_item_html($post) {
+    $catMap = array_column(load_categories(), 'name', 'id');
+    $tags = get_post_tags($post['id']);
+    $h = '<div class="post-item">' . "\n";
+    $h .= '<h2><a href="index.php?page=post&id=' . (int)$post['id'] . '">' . e($post['title']) . '</a></h2>' . "\n";
+    $h .= '<div class="post-meta">'
+        . '发表于 ' . format_date($post['created_at']) . ' | '
+        . '分类：<a href="index.php?page=category&id=' . (int)$post['category_id'] . '">' . e($catMap[$post['category_id']] ?? '未分类') . '</a> | '
+        . '评论：' . (int)($post['comment_count'] ?? 0) . ' | '
+        . '阅读：' . (int)($post['view_count'] ?? 0)
+        . '</div>' . "\n";
+    $h .= '<div class="post-summary">' . ($post['summary'] ?: make_summary($post['content'], 200)) . '</div>' . "\n";
+    if ($tags) {
+        $h .= '<div class="tag-list">标签：';
+        foreach ($tags as $i => $tag) {
+            $h .= '<a href="index.php?page=tag&slug=' . urlencode($tag['slug']) . '">' . e($tag['name']) . '</a>' . ($i < count($tags) - 1 ? ', ' : '');
+        }
+        $h .= '</div>' . "\n";
+    }
+    $h .= '</div>' . "\n";
+    return $h;
+}
+
+/**
+ * 渲染某一页的文章列表（含分页条），返回 [total, html]
+ */
+function qm_render_posts_list_page($page, $pageNum, $perPage = 0) {
+    if ($perPage <= 0) $perPage = (int)get_setting('posts_per_page', 10);
+    $posts = load_posts(['status' => 1]);
+    $total = count($posts);
+    $pg = paginate($total, max(1, $pageNum), $perPage);
+    $slice = array_slice($posts, $pg['offset'], $pg['perPage']);
+    $html = '';
+    foreach ($slice as $post) $html .= qm_render_post_item_html($post);
+    if (function_exists('pagination_html')) {
+        $html .= pagination_html($pg, 'index.php?page=' . $page);
+    }
+    return ['total' => $total, 'html' => $html];
 }
