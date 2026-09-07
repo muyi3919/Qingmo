@@ -2,8 +2,14 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.5.2-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.5.3-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.5.3
+
+- ✅ **修复评论"收到邮件却没入库"**：评论写入失败（多为 data 目录/文件无写权限）不再假装成功，会明确提示"评论保存失败：data 目录无写入权限"，且不再发送误导性的"新评论"通知邮件（`save_data` 现在返回是否成功，`add_comment` 透传结果）
 
 ---
 

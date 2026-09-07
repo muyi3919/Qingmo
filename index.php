@@ -122,7 +122,12 @@ switch ($page) {
                         header('Location: index.php?page=post&id=' . $id);
                         exit;
                     }
-                    add_comment($newComment);
+                    if (add_comment($newComment) === false) {
+                        // 写入失败（通常是 data 目录/文件无写权限）：不假装成功，也不发邮件
+                        $_SESSION['flash_msg'] = '评论保存失败：data 目录无写入权限，请联系管理员检查文件权限。';
+                        header('Location: index.php?page=post&id=' . $id);
+                        exit;
+                    }
                     // 重算已审核评论数，保证前后台计数一致
                     $post = load_post($id);
                     recount_comment_count($id);

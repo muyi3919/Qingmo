@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.5.2');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.5.3');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -322,11 +322,16 @@ function load_data($file, $default = []) {
  */
 function save_data($file, $data) {
     $dir = dirname($file);
-    if (!is_dir($dir)) mkdir($dir, 0755, true);
+    if (!is_dir($dir)) {
+        if (!@mkdir($dir, 0755, true) && !is_dir($dir)) return false;
+    }
     $content = "<?php\n// 数据文件，由系统自动生成\nreturn " . var_export($data, true) . ";\n";
-    file_put_contents($file, $content, LOCK_EX);
-    $key = realpath($file) !== false ? realpath($file) : $file;
-    $GLOBALS['_qm_data_cache'][$key] = $data;
+    $ok = @file_put_contents($file, $content, LOCK_EX) !== false;
+    if ($ok) {
+        $key = realpath($file) !== false ? realpath($file) : $file;
+        $GLOBALS['_qm_data_cache'][$key] = $data;
+    }
+    return $ok;
 }
 
 /**
@@ -409,19 +414,18 @@ function load_comments($post_id = null) {
  * 保存评论
  */
 function save_comments($comments) {
-    save_data(DATA_DIR . '/comments.php', $comments);
+    return save_data(DATA_DIR . '/comments.php', $comments);
 }
 
 /**
- * 添加评论
+ * 添加评论（返回是否写入成功）
  */
 function add_comment($data) {
     $comments = load_comments();
     $data['id'] = count($comments) > 0 ? max(array_column($comments, 'id')) + 1 : 1;
     $data['created_at'] = time();
     $comments[] = $data;
-    save_comments($comments);
-    return $data['id'];
+    return save_comments($comments);
 }
 
 /**
