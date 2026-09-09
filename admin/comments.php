@@ -11,14 +11,23 @@ if (isset($_GET['approve'])) {
     }
     $id = (int)$_GET['approve'];
     $comments = load_comments();
+    $approvedComment = null;
     foreach ($comments as &$c) {
-        if ($c['id'] == $id) {
+        if ($c['id'] == $id && (int)$c['status'] !== 1) {
             $c['status'] = 1;
-            recount_comment_count((int)$c['post_id']);
+            $approvedComment = $c;
         }
     }
     unset($c);
     save_comments($comments);
+    if ($approvedComment) {
+        recount_comment_count((int)$approvedComment['post_id']);
+        $approvedPost = load_post((int)$approvedComment['post_id']);
+        if ($approvedPost) {
+            qm_notify_mentions($approvedComment, $approvedPost);
+            qm_notify_reply($approvedComment, $approvedPost);
+        }
+    }
     $msg = '评论已通过审核。';
 }
 

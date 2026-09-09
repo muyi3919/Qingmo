@@ -8,7 +8,26 @@ require_once __DIR__ . '/includes/functions.php';
 
 // 检查是否已安装
 if (file_exists(DATA_DIR . '/config.php')) {
-    die('<h2>数据已存在</h2><p>如需重新安装，请先删除 data/ 目录下的所有文件。</p>');
+    $installState = 'installed';
+    require __DIR__ . '/includes/install-view.php';
+    exit;
+}
+
+qm_session_start();
+$installError = '';
+$installUser = trim((string)($_POST['username'] ?? ''));
+$installPass = (string)($_POST['password'] ?? '');
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) $installError = '安全验证失败，请重试。';
+    elseif (!preg_match('/^[A-Za-z0-9_\-]{3,32}$/', $installUser)) $installError = '用户名需要3至32位字母、数字、下划线或短横线。';
+    elseif (qm_password_error($installPass) !== '') $installError = qm_password_error($installPass);
+    elseif ($installPass !== (string)($_POST['confirm'] ?? '')) $installError = '两次密码不一致。';
+}
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || $installError !== '') {
+    header('Content-Type: text/html; charset=utf-8');
+    $installState = 'form';
+    require __DIR__ . '/includes/install-view.php';
+    exit;
 }
 
 // 确保目录存在
@@ -16,7 +35,7 @@ if (!is_dir(DATA_DIR)) mkdir(DATA_DIR, 0755, true);
 if (!is_dir(POSTS_DIR)) mkdir(POSTS_DIR, 0755, true);
 
 // 1. 站点配置
-save_config([
+$initialConfig = [
     'site_title' => '我的轻墨博客',
     'site_description' => '一个轻量纯粹的博客空间',
     'site_url' => '',
@@ -39,14 +58,14 @@ save_config([
     'smtp_pass' => '',
     'smtp_from' => '',
     'smtp_from_name' => '',
-]);
+];
 
-// 2. 管理员账号（密码: admin）
+// 2. 用户自行设置的管理员账号
 save_users([
     [
         'id' => 1,
-        'username' => 'admin',
-        'password' => password_hash('admin', PASSWORD_DEFAULT),
+        'username' => $installUser,
+        'password' => password_hash($installPass, PASSWORD_DEFAULT),
         'email' => 'admin@example.com',
         'created_at' => time(),
     ]
@@ -64,36 +83,19 @@ $now = time();
 
 save_post(1, [
     'id' => 1,
-    'title' => '欢迎来到我的2000年博客',
-    'slug' => 'welcome-to-my-blog',
-    'content' => "<p>大家好！这是我的第一个博客。</p>\n<p>在这个朴素的文字空间里，我会分享一些生活随笔和技术笔记。没有花哨的特效，只有真诚的文字。</p>\n<p>如果你也是那个年代过来的人，一定会怀念这种简单纯粹的阅读体验。</p>",
-    'summary' => '这是我的第一篇博客文章，欢迎来访。',
-    'category_id' => 2,
+    'title' => 'Hello world!',
+    'slug' => 'hello-world',
+    'content' => '<p>欢迎使用 Qingmo（轻墨）！这是你的第一篇文章，也是这段书写旅程的开始。</p><p>Qingmo 是一个基于 PHP 的轻量博客系统，使用文件保存数据，无需配置数据库。你可以在这里记录生活、分享知识，也可以留下一闪而过的灵感。</p><p>从后台开始，你可以使用 Markdown 或可视化编辑器书写文章，管理分类、标签和评论，选择喜欢的主题，并通过插件扩展博客功能。</p><p>这篇文章可以随时编辑或删除。准备好后，写下属于你的第一段文字吧。</p><p>了解项目、反馈问题或参与贡献：<a href="https://github.com/muyi3919/Qingmo" target="_blank" rel="noopener">Qingmo on GitHub</a>。</p>',
+    'summary' => '欢迎使用 Qingmo（轻墨），一个无需数据库的轻量 PHP 博客系统。从这里开始，记录生活、分享知识，好好书写。',
+    'category_id' => 1,
     'author_id' => 1,
-    'author_name' => 'admin',
+    'author_name' => $installUser,
     'status' => 1,
     'view_count' => 0,
-    'comment_count' => 2,
+    'comment_count' => 1,
     'tags' => ['博客', '开篇'],
-    'created_at' => $now - 86400,
-    'updated_at' => $now - 86400,
-]);
-
-save_post(2, [
-    'id' => 2,
-    'title' => '今天开始学PHP',
-    'slug' => 'start-learning-php',
-    'content' => "<p>PHP 是一种很好的 Web 开发语言。今天我开始学习如何用它来做动态网站。</p>\n<p>目前我已经学会了基本的语法和数据库连接。下一步准备写一个留言板程序。</p>\n<p>希望以后能做出更多有趣的东西！</p>",
-    'summary' => '记录我开始学习PHP的第一天。',
-    'category_id' => 3,
-    'author_id' => 1,
-    'author_name' => 'admin',
-    'status' => 1,
-    'view_count' => 0,
-    'comment_count' => 0,
-    'tags' => ['PHP', '学习'],
-    'created_at' => $now - 43200,
-    'updated_at' => $now - 43200,
+    'created_at' => $now,
+    'updated_at' => $now,
 ]);
 
 // 5. 评论
@@ -101,22 +103,13 @@ save_comments([
     [
         'id' => 1,
         'post_id' => 1,
-        'author_name' => '访客小王',
-        'author_email' => 'xiaowang@example.com',
-        'author_url' => '',
-        'content' => '博客很好看！加油更新！',
+        'parent_id' => 0,
+        'author_name' => 'Qingmo',
+        'author_email' => 'shuzhishaoju@gmail.com',
+        'author_url' => 'https://github.com/muyi3919/Qingmo',
+        'content' => '感谢使用 Qingmo，愿每一笔墨都轻而不浮，重而不滞。好好书写吧。 —— Qingmo 团队',
         'status' => 1,
-        'created_at' => $now - 36000,
-    ],
-    [
-        'id' => 2,
-        'post_id' => 1,
-        'author_name' => '网友阿明',
-        'author_email' => 'aming@example.com',
-        'author_url' => '',
-        'content' => '这种风格很怀旧，喜欢。',
-        'status' => 1,
-        'created_at' => $now - 18000,
+        'created_at' => $now,
     ],
 ]);
 
@@ -134,14 +127,12 @@ save_about([
 ]);
 
 // 7. 计数器
-save_data(DATA_DIR . '/counter.php', 2);
+save_data(DATA_DIR . '/counter.php', 1);
 
 // 刷新分类计数
 refresh_all_categories();
 
 // 完成
-echo '<h2>安装成功！</h2>';
-echo '<p>数据文件已创建。</p>';
-echo '<p><strong>重要：</strong>请立即删除 install.php 文件！</p>';
-echo '<p>默认管理员账号：<strong>admin</strong> / 密码：<strong>admin</strong></p>';
-echo '<p><a href="index.php">前往首页（安装文件已自动标记，请手动删除install.php）</a> | <a href="admin/login.php">进入后台</a></p>';
+save_config($initialConfig);
+$installState = 'success';
+require __DIR__ . '/includes/install-view.php';

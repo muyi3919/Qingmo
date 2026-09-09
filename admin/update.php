@@ -34,14 +34,19 @@ function qm_ota_repo_parts($repo) {
 }
 
 function qm_ota_http($url) {
+    if (!is_string($url) || !preg_match('#^https://#i', $url)) {
+        return ['ok' => false, 'code' => 0, 'body' => '', 'error' => '更新地址必须使用 HTTPS'];
+    }
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_TIMEOUT => 60,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTPS,
             CURLOPT_USERAGENT => 'Qingmo-OTA/2.3',
         ]);
         $body = curl_exec($ch);
@@ -51,7 +56,7 @@ function qm_ota_http($url) {
         curl_close($ch);
         return ['ok' => $errno === 0, 'code' => $code, 'body' => $body === false ? '' : $body, 'error' => $error];
     }
-    $ctx = stream_context_create(['http' => ['timeout' => 60, 'ignore_errors' => true, 'follow_location' => 1]]);
+    $ctx = stream_context_create(['http' => ['timeout' => 60, 'ignore_errors' => true, 'follow_location' => 0], 'ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]);
     $body = @file_get_contents($url, false, $ctx);
     $code = 0;
     if (isset($http_response_header) && is_array($http_response_header)) {
@@ -78,8 +83,7 @@ function qm_ota_rmdir($dir) {
  */
 function qm_ota_run_update($otaRepo, $otaBranch, $otaZipUrl) {
     $tmpRoot = rtrim(sys_get_temp_dir(), '/\\');
-    $tmpDir = $tmpRoot . '/qingmo_ota_' . substr(md5(ROOT_DIR), 0, 10);
-    if (is_dir($tmpDir)) qm_ota_rmdir($tmpDir);
+    $tmpDir = $tmpRoot . '/qingmo_ota_' . bin2hex(random_bytes(12));
     @mkdir($tmpDir, 0755, true);
     if (!is_dir($tmpDir) || !is_writable($tmpDir)) {
         return '无法在系统临时目录创建更新工作区（' . $tmpDir . '），请检查 PHP sys_get_temp_dir 是否可写。';
@@ -126,14 +130,33 @@ function qm_ota_run_update($otaRepo, $otaBranch, $otaZipUrl) {
         qm_ota_rmdir($tmpDir);
         return '无法创建解压目录，请检查服务器 temp 目录权限。';
     }
-    $za->extractTo($extract);
+    $expandedSize = 0;
+    for ($i = 0; $i < $za->numFiles; $i++) {
+        $entry = $za->statIndex($i);
+        $name = str_replace('\\', '/', $entry['name']);
+        $expandedSize += $entry['size'];
+        if (preg_match('#(^/|^[A-Za-z]:|(^|/)\.\.(/|$))#', $name) || $expandedSize > 256 * 1024 * 1024 || $za->numFiles > 10000) {
+            $za->close();
+            qm_ota_rmdir($tmpDir);
+            return '更新包包含非法路径或超过解压限制。';
+        }
+    }
+    $extracted = $za->extractTo($extract);
     $za->close();
+    if (!$extracted) {
+        qm_ota_rmdir($tmpDir);
+        return '更新包解压失败，站点未修改。';
+    }
 
     // zip 内若只有唯一顶层文件夹（GitHub 的 {repo}-{branch}）则取其内容
     $base = $extract;
     $tops = array_values(array_diff(scandir($extract), ['.', '..']));
     if (count($tops) === 1 && is_dir($extract . '/' . $tops[0])) {
         $base = $extract . '/' . $tops[0];
+    }
+    if (!is_file($base . '/index.php') || !is_file($base . '/includes/functions.php')) {
+        qm_ota_rmdir($tmpDir);
+        return '更新包缺少轻墨核心文件，站点未修改。';
     }
 
     // 递归覆盖（排除 data/、assets/uploads/、.git）
@@ -142,6 +165,7 @@ function qm_ota_run_update($otaRepo, $otaBranch, $otaZipUrl) {
     $it = new RecursiveIteratorIterator(
         new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS)
     );
+    $plan = [];
     foreach ($it as $file) {
         if (!$file->isFile()) continue;
         $rel = substr($file->getPathname(), strlen($base) + 1);
@@ -152,8 +176,34 @@ function qm_ota_run_update($otaRepo, $otaBranch, $otaZipUrl) {
             continue;
         }
         $dest = ROOT_DIR . '/' . $rel;
+        $backup = $tmpDir . '/backup/' . $rel;
+        $exists = file_exists($dest);
+        if ($exists) {
+            if (!is_dir(dirname($backup))) @mkdir(dirname($backup), 0700, true);
+            if (!is_writable($dest) || !@copy($dest, $backup)) {
+                qm_ota_rmdir($tmpDir);
+                return '无法备份待更新文件，站点未修改。';
+            }
+        }
+        $plan[] = ['source' => $file->getPathname(), 'dest' => $dest, 'backup' => $exists ? $backup : null];
+    }
+    $changed = [];
+    foreach ($plan as $item) {
+        $dest = $item['dest'];
         if (!is_dir(dirname($dest))) @mkdir(dirname($dest), 0755, true);
-        if (@copy($file->getPathname(), $dest)) $copied++; else $failed++;
+        $changed[] = $item;
+        if (!@copy($item['source'], $dest)) {
+            $rollbackOk = true;
+            foreach (array_reverse($changed) as $old) {
+                $restored = $old['backup'] !== null ? @copy($old['backup'], $old['dest']) : (!file_exists($old['dest']) || @unlink($old['dest']));
+                if (!$restored) $rollbackOk = false;
+                if (function_exists('opcache_invalidate')) @opcache_invalidate($old['dest'], true);
+            }
+            if ($rollbackOk) qm_ota_rmdir($tmpDir);
+            return $rollbackOk ? '更新失败，已恢复原有文件。' : '更新失败，部分文件恢复失败；备份保留于：' . $tmpDir . '/backup';
+        }
+        if (function_exists('opcache_invalidate')) @opcache_invalidate($dest, true);
+        $copied++;
     }
     qm_ota_rmdir($tmpDir);
 

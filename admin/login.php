@@ -13,17 +13,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = '安全验证失败，请刷新页面重试。';
     } else {
         $username = trim($_POST['username'] ?? '');
-        $password = trim($_POST['password'] ?? '');
+        $password = (string)($_POST['password'] ?? '');
+        $attempts = load_data(DATA_DIR . '/login-attempts.php', []);
+        $now = time();
+        $attempts = array_filter($attempts, function ($a) use ($now) { return $a['until'] > $now; });
+        $attemptKey = hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? 'local'));
+        if (($attempts[$attemptKey]['count'] ?? 0) >= 5) {
+            http_response_code(429);
+            exit('登录尝试过多，请在15分钟后重试。');
+        }
         $users = load_users();
         foreach ($users as $u) {
             if ($u['username'] === $username && password_verify($password, $u['password'])) {
                 session_regenerate_id(true);
                 $_SESSION['admin_id'] = $u['id'];
                 $_SESSION['admin_username'] = $u['username'];
+                $_SESSION['auth_version'] = hash('sha256', $u['password']);
+                unset($attempts[$attemptKey]);
+                save_data(DATA_DIR . '/login-attempts.php', $attempts);
                 header('Location: index.php');
                 exit;
             }
         }
+        $attempts[$attemptKey] = ['count' => ($attempts[$attemptKey]['count'] ?? 0) + 1, 'until' => $attempts[$attemptKey]['until'] ?? ($now + 900)];
+        save_data(DATA_DIR . '/login-attempts.php', $attempts);
         $error = '用户名或密码错误。';
     }
 }

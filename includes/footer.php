@@ -95,11 +95,11 @@
     });
 
     function poll(url, onGot) {
-        if (pageHidden) return;
+        if (pageHidden) { onGot({}); return; }
         fetch(url, { cache: 'no-store', credentials: 'same-origin' })
             .then(function (r) { return r.json(); })
-            .then(function (d) { if (d && d.ok) onGot(d); })
-            .catch(function () { /* 网络抖动忽略 */ });
+            .then(function (d) { onGot(d && d.ok ? d : {}); })
+            .catch(function () { onGot({}); });
     }
 
     // ---------- 新评论自动上屏 ----------

@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($data['slug'] === '') $data['slug'] = slugify($title);
 
             if ($id) {
+                $data = array_replace($post, $data);
                 $data['author_id'] = $post['author_id'] ?? $_SESSION['admin_id'];
                 $data['author_name'] = $post['author_name'] ?? $_SESSION['admin_username'];
                 $data['view_count'] = $post['view_count'] ?? 0;

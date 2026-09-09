@@ -93,9 +93,19 @@ switch ($page) {
             $url = trim($_POST['author_url'] ?? '');
             $content = trim($_POST['content'] ?? '');
             $parentId = (int)($_POST['parent_id'] ?? 0);
+            $parentValid = $parentId === 0;
+            foreach (load_comments($id) as $parent) {
+                if ((int)$parent['id'] === $parentId && (int)$parent['status'] === 1) $parentValid = true;
+            }
             
             if ($name === '' || $email === '' || $content === '') {
                 $msg = '请填写昵称、邮箱和评论内容。';
+            } elseif (!$parentValid) {
+                $msg = '回复的评论不存在或尚未审核。';
+            } elseif (strlen($content) > 20000 || strlen($name) > 200 || strlen($url) > 2048) {
+                $msg = '评论内容或个人资料过长。';
+            } elseif ($url !== '' && !preg_match('#^https?://#i', $url)) {
+                $msg = '个人主页必须使用 http:// 或 https://。';
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $msg = '邮箱格式不正确。';
             } else {

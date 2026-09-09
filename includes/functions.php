@@ -35,6 +35,7 @@ function qm_session_start() {
             'lifetime' => 0,
             'path' => '/',
             'httponly' => true,
+            'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
             'samesite' => 'Lax',
         ]);
     }
@@ -238,6 +239,17 @@ function load_active_plugins() {
     }
 }
 
+// 所有数据访问共用独立锁：锁覆盖读取、修改、写入，避免并发覆盖。
+// 锁文件不能随数据替换；进程退出时自动释放。
+if (!is_dir(DATA_DIR) && !@mkdir(DATA_DIR, 0755, true) && !is_dir(DATA_DIR)) {
+    http_response_code(503);
+    exit('无法创建数据目录，请检查权限。');
+}
+$GLOBALS['_qm_storage_lock'] = @fopen(DATA_DIR . '/.storage.lock', 'c');
+if (!$GLOBALS['_qm_storage_lock'] || !flock($GLOBALS['_qm_storage_lock'], LOCK_EX)) {
+    http_response_code(503);
+    exit('数据存储暂时不可用，请稍后重试。');
+}
 // 在入口 require functions 后统一加载插件
 load_active_plugins();
 
@@ -326,12 +338,20 @@ function save_data($file, $data) {
         if (!@mkdir($dir, 0755, true) && !is_dir($dir)) return false;
     }
     $content = "<?php\n// 数据文件，由系统自动生成\nreturn " . var_export($data, true) . ";\n";
-    $ok = @file_put_contents($file, $content, LOCK_EX) !== false;
+    $tmp = @tempnam($dir, '.qm-');
+    $ok = $tmp !== false && @file_put_contents($tmp, $content) === strlen($content)
+        && @rename($tmp, $file);
+    if ($tmp !== false && file_exists($tmp)) @unlink($tmp);
     if ($ok) {
+        if (function_exists('opcache_invalidate')) @opcache_invalidate($file, true);
         $key = realpath($file) !== false ? realpath($file) : $file;
         $GLOBALS['_qm_data_cache'][$key] = $data;
     }
-    return $ok;
+    if (!$ok) {
+        http_response_code(503);
+        exit('保存失败：请检查数据目录权限和磁盘剩余空间。原有数据未被覆盖。');
+    }
+    return true;
 }
 
 /**
@@ -380,7 +400,7 @@ function load_post($id) {
 function save_post($id, $data) {
     if (!isset($data['id'])) $data['id'] = (int)$id;
     $file = POSTS_DIR . '/' . (int)$id . '.php';
-    save_data($file, $data);
+    return save_data($file, $data);
 }
 
 /**
@@ -542,8 +562,22 @@ function pagination_html($paginate, $baseUrl) {
 /**
  * 检查是否已登录
  */
+function qm_password_error($password) {
+    if (!is_string($password) || !preg_match('//u', $password)) return '密码包含无效字符，请重新输入。';
+    if (preg_match_all('/./us', $password) < 6) return '密码至少需要6个字符。';
+    // bcrypt 最多处理72字节；不向用户暴露存储实现术语。
+    if (strlen($password) > 72) return '密码过长，请缩短后重试。';
+    return '';
+}
+
 function is_logged_in() {
-    return isset($_SESSION['admin_id']) && $_SESSION['admin_id'] > 0;
+    if (empty($_SESSION['admin_id']) || empty($_SESSION['auth_version'])) return false;
+    foreach (load_users() as $user) {
+        if ((int)$user['id'] === (int)$_SESSION['admin_id']) {
+            return hash_equals(hash('sha256', $user['password']), (string)$_SESSION['auth_version']);
+        }
+    }
+    return false;
 }
 
 /**
@@ -1030,6 +1064,7 @@ function qm_collect_commenters($post_id) {
  * 评论 @ 提及提醒：解析评论内容里的 @昵称，给对应评论者发邮件
  */
 function qm_notify_mentions($comment, $post, $commenters = null) {
+    if ((int)($comment['status'] ?? 0) !== 1) return;
     if ((int)get_setting('at_notify_on', 1) !== 1) return;
     $commenters = $commenters !== null ? $commenters : qm_collect_commenters((int)($post['id'] ?? 0));
     $content = (string)($comment['content'] ?? '');
@@ -1065,6 +1100,7 @@ function qm_notify_mentions($comment, $post, $commenters = null) {
  * “有人回复了你的评论”提醒（点“回复”按钮产生 parent_id 时触发）
  */
 function qm_notify_reply($comment, $post) {
+    if ((int)($comment['status'] ?? 0) !== 1) return;
     $parentId = (int)($comment['parent_id'] ?? 0);
     if ($parentId <= 0) return;
     $poster = trim((string)($comment['author_name'] ?? ''));
@@ -1168,7 +1204,7 @@ function qm_render_comment_items($tree, $totalComments) {
             . '<img class="comment-avatar" src="' . e($avatarUrl) . '" alt="" width="26" height="26" loading="lazy" style="width:26px;height:26px;border-radius:50%;vertical-align:middle;margin-right:6px;">'
             . ($parentId ? '<span class="reply-badge">回复</span>' : '')
             . '<strong>' . e($node['author_name']) . '</strong>';
-        if (!empty($node['author_url'])) {
+        if (!empty($node['author_url']) && preg_match('#^https?://#i', $node['author_url'])) {
             $out .= '(<a href="' . e($node['author_url']) . '" target="_blank" rel="noopener nofollow">主页</a>)';
         }
         $out .= '发表于 ' . format_date($node['created_at']) . '</div>' . "\n";

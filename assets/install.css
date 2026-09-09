@@ -1,0 +1,24 @@
+:root{font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:#24354a;background:#e9edf2;font-synthesis:none}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:36px 20px;background-image:radial-gradient(circle at 10% 30%,#ffffffa6 0,transparent 38%),radial-gradient(circle at 90% 80%,#c8d2e64d 0,transparent 40%)}
+.setup-card{width:100%;max-width:460px;background:#fff;border:1px solid #ffffffcc;border-radius:28px;padding:36px 40px;box-shadow:0 12px 40px #23364a0c}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;margin-bottom:32px}
+.brand-mark{display:grid;place-items:center;width:36px;height:36px;border-radius:11px;background:#edf2f7;color:#3b5a78;font-family:serif;font-size:22px}
+.brand-en{font-size:10px;letter-spacing:2px;color:#788697;font-weight:500;margin-left:auto}
+.eyebrow{font-size:13px;color:#748397;margin:0 0 8px}
+h1{font-size:27px;line-height:1.4;letter-spacing:-.5px;font-weight:600;margin:0 0 10px}
+.intro{color:#687789;font-size:14px;line-height:1.8;margin:0 0 28px}
+label{display:block;font-size:14px;font-weight:500;margin:20px 0 8px}
+input{display:block;width:100%;font:inherit;font-size:15px;padding:13px 15px;background:#f8fafc;border:1px solid #dce3eb;border-radius:12px;color:#24354a;transition:border-color .15s,box-shadow .15s}
+input::placeholder{color:#8b96a5}
+input:focus-visible{outline:none;border-color:#6584a4;box-shadow:0 0 0 3px #6584a426;background:white}
+.help{font-size:12px;line-height:1.6;color:#718093;margin:7px 0 0}
+button,.primary-link{width:100%;display:flex;align-items:center;justify-content:center;gap:12px;border:0;border-radius:12px;background:#344f6d;color:white;padding:14px 18px;font:inherit;font-size:15px;font-weight:500;text-decoration:none;cursor:pointer;margin-top:28px}
+button:hover,.primary-link:hover{background:#263f5a}
+button:focus-visible,a:focus-visible{outline:3px solid #8aa9c9;outline-offset:4px}
+.notice{font-size:14px;line-height:1.6;background:#f0f5fa;padding:13px 15px;border-radius:12px;margin:20px 0;color:#3b5a78;overflow-wrap:anywhere}
+.error{color:#a53939;background:#fff1f0;border:1px solid #f4d6d4}
+.footnote{font-size:12px;color:#7c8999;text-align:center;margin:24px 0 0}
+.success-mark{width:48px;height:48px;display:grid;place-items:center;background:#edf6ef;color:#457153;font-size:25px;border-radius:50%;margin:0 0 22px}
+.back-link{display:block;text-align:center;color:#526b86;font-size:14px;margin:20px 0 0;text-underline-offset:4px}
+@media(max-width:480px){body{padding:20px 14px}.setup-card{padding:28px 24px;border-radius:24px}h1{font-size:24px}.brand{margin-bottom:26px}}

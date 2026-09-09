@@ -9,16 +9,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? '')) {
         $err = '安全验证失败，请刷新页面重试。';
     } else {
-        $old = trim($_POST['old_password'] ?? '');
-        $new = trim($_POST['new_password'] ?? '');
-        $confirm = trim($_POST['confirm_password'] ?? '');
+        $old = (string)($_POST['old_password'] ?? '');
+        $new = (string)($_POST['new_password'] ?? '');
+        $confirm = (string)($_POST['confirm_password'] ?? '');
 
         if ($old === '' || $new === '' || $confirm === '') {
             $err = '请填写所有字段。';
         } elseif ($new !== $confirm) {
             $err = '两次输入的新密码不一致。';
-        } elseif (strlen($new) < 6) {
-            $err = '新密码至少需要6位。';
+        } elseif (qm_password_error($new) !== '') {
+            $err = qm_password_error($new);
         } else {
             $users = load_users();
             $found = false;
@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $err = '当前密码错误。';
                     } else {
                         $u['password'] = password_hash($new, PASSWORD_DEFAULT);
+                        $authVersion = hash('sha256', $u['password']);
                         $found = true;
                     }
                     break;
@@ -36,6 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($u);
             if ($found && $err === '') {
                 save_users($users);
+                session_regenerate_id(true);
+                $_SESSION['auth_version'] = $authVersion;
                 $msg = '密码修改成功！';
             }
         }
@@ -58,7 +61,8 @@ include __DIR__ . '/_header.php';
     <input type="password" name="old_password" required>
 
     <label>新密码</label>
-    <input type="password" name="new_password" required>
+    <input type="password" name="new_password" required minlength="6" autocomplete="new-password" aria-describedby="password-help">
+    <p id="password-help">至少6个字符，建议组合使用字母、数字和符号。</p>
 
     <label>确认新密码</label>
     <input type="password" name="confirm_password" required>
