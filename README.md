@@ -207,7 +207,6 @@ v2.0 主要更新（均已实现并可用，状态以「✅」标注）：
 │       ├── theme.php
 │       └── style.css
 ├── plugins/               # 插件目录（每个子目录一个插件）
-│   ├── footer-beian/      # 页脚备案信息（后台可填写文案，含 admin.php 设置页）
 │   ├── post-copyright/    # 示例：文章版权尾巴（过滤器钩子）
 │   ├── sidebar-notice/    # 侧栏公告（后台可填写内容，含 admin.php 设置页）
 │   ├── qingmo-sticky/     # 文章置顶（后台一键置顶/取消）
@@ -334,7 +333,9 @@ add_filter('qm_post_content', function ($content, $post) {
 }, 10, 2);
 ```
 
-`admin.php` 负责输出设置表单并保存（页面已登录鉴权，表单记得 `csrf_field()`；保存的数据建议用 `load_data/save_data` 存到 `data/` 下自己的文件）。参考实现见 `plugins/footer-beian/admin.php`、`plugins/sidebar-notice/admin.php`。
+`admin.php` 负责输出设置表单并保存（页面已登录鉴权，表单记得 `csrf_field()`；保存的数据建议用 `load_data/save_data` 存到 `data/` 下自己的文件）。参考实现见 `plugins/sidebar-notice/admin.php`。
+
+备案号、版权声明和备案链接统一在「站点设置 → 页脚自定义」中填写，支持 HTML，不再内置「页脚备案信息」插件。旧版用户请先将插件中的文字复制到页脚自定义，再停用旧插件；覆盖升级不会自动删除旧插件文件。
 
 后台「插件市场」页面可启用/停用插件，启用且带 `admin.php` 的插件会额外显示「设置」入口。系统内置以下钩子：
 
