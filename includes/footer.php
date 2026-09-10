@@ -170,6 +170,7 @@
     function isZoomable(im) {
         if (im.closest('a, button, label, .emotion-panel')) return false;
         if (im.classList.contains('comment-avatar')) return false;
+        if (im.classList.contains('qm-emoticon')) return false; // emoji 表情不弹灯箱
         return !!im.closest('.comment-content, .post-content .content');
     }
     function collectFrom(im) {

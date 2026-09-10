@@ -60,6 +60,7 @@ function qm_emotion_defaults() {
                 'code' => $code,
                 'src'  => site_base_url() . '/assets/emotions/bilibili/' . rawurlencode($file),
                 'title' => $code,
+                'emoji' => true, // 渲染成“真 emoji”大小，随文字行内显示
             ];
         }
         if ($bili) {
@@ -177,7 +178,16 @@ function qm_emotions_render_html($html) {
         if (!isset($map[$code])) return $m[0];
         $title = (string)($map[$code]['title'] ?? '');
         $alt = ':' . $code . ':';
-        return '<img src="' . e($map[$code]['src']) . '" alt="' . e($alt) . '" title="' . e($title) . '"'
-            . ' style="max-width:64px;max-height:64px;vertical-align:middle;" loading="lazy">';
+        // B站等内置小黄脸按 emoji 尺寸行内渲染；插件大表情包保持原 64px 上限
+        if (!empty($map[$code]['emoji'])) {
+            $cls = ' class="qm-emoticon"';
+            $style = 'width:1.25em;height:1.25em;object-fit:contain;'
+                . 'vertical-align:-0.18em;border-radius:3px;cursor:default;';
+        } else {
+            $cls = '';
+            $style = 'max-width:64px;max-height:64px;vertical-align:middle;';
+        }
+        return '<img' . $cls . ' src="' . e($map[$code]['src']) . '" alt="' . e($alt) . '" title="' . e($title) . '"'
+            . ' style="' . $style . '" loading="lazy">';
     }, (string)$html);
 }

@@ -27,8 +27,12 @@ if ($page === 'ajax') {
         }
     } elseif ($act === 'posts') {
         $route = (($_GET['route'] ?? 'home') === 'archive') ? 'archive' : 'home';
-        $num = max(1, (int)($_GET['num'] ?? 1));
-        $r = qm_render_posts_list_page($route, $num);
+        if ($route === 'archive') {
+            $r = qm_render_archive_groups_html();
+        } else {
+            $num = max(1, (int)($_GET['num'] ?? 1));
+            $r = qm_render_posts_list_page($route, $num);
+        }
         $out = ['ok' => true, 'total' => $r['total'], 'html' => $r['html']];
     }
     echo json_encode($out, JSON_UNESCAPED_UNICODE);
@@ -50,11 +54,14 @@ switch ($page) {
         include 'includes/header.php';
         
         echo '<div class="post-list" id="qmPostList" data-page="' . e($page) . '" data-num="' . $p . '">';
-        if ($page === 'archive') {
-            echo '<h2>文章归档</h2>';
-        }
         echo '<div id="qmPostListInner">';
-        echo qm_render_posts_list_page($page, $p, $perPage)['html'];
+        if ($page === 'archive') {
+            // 归档：按日期分组（x月x日 + 年份），纯时间新→旧，忽略置顶
+            echo '<h2>文章归档</h2>';
+            echo qm_render_archive_groups_html()['html'];
+        } else {
+            echo qm_render_posts_list_page($page, $p, $perPage)['html'];
+        }
         echo '</div>';
         echo '</div>';
         
@@ -392,7 +399,7 @@ switch ($page) {
         foreach ($posts as $post):
         ?>
             <div class="post-item">
-                <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?></a></h2>
+                <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?><?php if (!empty($post['sticky'])): ?><span style="color:#e53935;font-weight:700;font-size:14px;margin-left:6px;">[置顶]</span><?php endif; ?></a></h2>
                 <div class="post-meta">
                     发表于 <?php echo format_date($post['created_at']); ?> | 评论：<?php echo $post['comment_count']; ?> | 阅读：<?php echo $post['view_count']; ?>
                 </div>
@@ -435,7 +442,7 @@ switch ($page) {
         foreach ($posts as $post):
         ?>
             <div class="post-item">
-                <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?></a></h2>
+                <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?><?php if (!empty($post['sticky'])): ?><span style="color:#e53935;font-weight:700;font-size:14px;margin-left:6px;">[置顶]</span><?php endif; ?></a></h2>
                 <div class="post-meta">
                     发表于 <?php echo format_date($post['created_at']); ?> | 评论：<?php echo $post['comment_count']; ?> | 阅读：<?php echo $post['view_count']; ?>
                 </div>
@@ -535,7 +542,7 @@ switch ($page) {
         <?php endif; ?>
         <?php foreach ($datePosts as $post): ?>
             <div class="post-item">
-                <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?></a></h2>
+                <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?><?php if (!empty($post['sticky'])): ?><span style="color:#e53935;font-weight:700;font-size:14px;margin-left:6px;">[置顶]</span><?php endif; ?></a></h2>
                 <div class="post-meta">发表于 <?php echo format_date($post['created_at']); ?></div>
                 <div class="post-summary"><?php echo $post['summary'] ?: make_summary($post['content'], 200); ?></div>
             </div>
@@ -580,7 +587,7 @@ switch ($page) {
                     $catMap = array_column($cats, 'name', 'id');
                 ?>
                     <div class="post-item">
-                        <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?></a></h2>
+                        <h2><a href="index.php?page=post&id=<?php echo $post['id']; ?>"><?php echo e($post['title']); ?><?php if (!empty($post['sticky'])): ?><span style="color:#e53935;font-weight:700;font-size:14px;margin-left:6px;">[置顶]</span><?php endif; ?></a></h2>
                         <div class="post-meta">
                             发表于 <?php echo format_date($post['created_at']); ?> | 
                             分类：<a href="index.php?page=category&id=<?php echo $post['category_id']; ?>"><?php echo e($catMap[$post['category_id']] ?? '未分类'); ?></a> | 

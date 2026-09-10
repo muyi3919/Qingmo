@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.7.0');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.7.1');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -1235,8 +1235,12 @@ function qm_render_comment_items($tree, $totalComments) {
 function qm_render_post_item_html($post) {
     $catMap = array_column(load_categories(), 'name', 'id');
     $tags = get_post_tags($post['id']);
+    $stickyBadge = '';
+    if (!empty($post['sticky'])) {
+        $stickyBadge = '<span style="color:#e53935;font-weight:700;font-size:14px;margin-right:6px;">[置顶]</span>';
+    }
     $h = '<div class="post-item">' . "\n";
-    $h .= '<h2><a href="index.php?page=post&id=' . (int)$post['id'] . '">' . e($post['title']) . '</a></h2>' . "\n";
+    $h .= '<h2>' . $stickyBadge . '<a href="index.php?page=post&id=' . (int)$post['id'] . '">' . e($post['title']) . '</a></h2>' . "\n";
     $h .= '<div class="post-meta">'
         . '发表于 ' . format_date($post['created_at']) . ' | '
         . '分类：<a href="index.php?page=category&id=' . (int)$post['category_id'] . '">' . e($catMap[$post['category_id']] ?? '未分类') . '</a> | '
@@ -1270,4 +1274,47 @@ function qm_render_posts_list_page($page, $pageNum, $perPage = 0) {
         $html .= pagination_html($pg, 'index.php?page=' . $page);
     }
     return ['total' => $total, 'html' => $html];
+}
+
+/**
+ * 归档用：按发布时间新→旧取全部已发布文章（忽略置顶等 qm_posts_list 重排）
+ */
+function qm_load_posts_chronological() {
+    $posts = [];
+    if (is_dir(POSTS_DIR)) {
+        foreach (glob(POSTS_DIR . '/*.php') as $file) {
+            $p = load_data($file);
+            if (!is_array($p) || ($p['status'] ?? 0) != 1) continue;
+            $posts[] = $p;
+        }
+    }
+    usort($posts, function ($a, $b) {
+        return ($b['created_at'] ?? 0) <=> ($a['created_at'] ?? 0);
+    });
+    return $posts;
+}
+
+/**
+ * 文章归档：按「9月8日」分组、组内列标题（纯时间排序，不受置顶影响）
+ */
+function qm_render_archive_groups_html() {
+    $posts = qm_load_posts_chronological();
+    $html = '';
+    $cur = null;
+    foreach ($posts as $ap) {
+        $ts = (int)($ap['created_at'] ?? 0);
+        $day = date('Y-m-d', $ts);
+        if ($day !== $cur) {
+            if ($cur !== null) $html .= "</ul>\n";
+            $html .= '<h3 class="qm-arch-day" style="margin:18px 0 6px;font-size:16px;color:#333;border-bottom:1px dashed #ccc;padding-bottom:4px;">'
+                . date('n月j日', $ts)
+                . ' <span style="color:#aaa;font-weight:normal;font-size:12px;">' . date('Y', $ts) . '年</span></h3>' . "\n";
+            $html .= "<ul style=\"list-style:none;margin:0;padding:0;\">\n";
+            $cur = $day;
+        }
+        $html .= '<li style="padding:2px 0;"><a href="index.php?page=post&id=' . (int)$ap['id'] . '">' . e($ap['title']) . '</a></li>' . "\n";
+    }
+    if ($cur !== null) $html .= "</ul>\n";
+    if (!$posts) $html .= '<p>还没有文章。</p>';
+    return ['total' => count($posts), 'html' => $html];
 }

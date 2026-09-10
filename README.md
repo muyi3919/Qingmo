@@ -2,8 +2,16 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.7.0-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.7.1-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.7.1
+
+- **B站表情按 emoji 尺寸渲染**：内置 B站小黄脸在评论里以 1.25em 行内显示，跟随文字大小、不再像贴一张大图；点击也不会弹出图片灯箱（带 `qm-emoticon` 标记，鼠标不显示放大光标）。插件大表情包（派蒙/塔菲）仍保持原尺寸与放大行为。
+- **置顶文章红色标识**：首页、归档、分类、标签、日期、搜索列表中，置顶文章标题前显示红色加粗 `[置顶]`（纯文字，无底色）。
+- **文章归档改版**：归档页不再置顶优先，严格按发布时间新→旧；按日期分组显示（组标题如「9月8日」+ 淡色年份），组内列出文章标题，并同步 AJAX 免刷新接口。
 
 ---
 
