@@ -17,12 +17,24 @@ $qmMenu = [
     'password'   => ['修改密码'],
 ];
 if (!isset($qmMenu[$qmPage])) $qmPage = 'dashboard';
+
+// 后台基准地址：避免从 /admin（末尾无斜杠）进入时，相对链接被解析到站点根目录
+if (!function_exists('qm_admin_base_path')) {
+    function qm_admin_base_path() {
+        $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php'));
+        $dir = rtrim(dirname($script), '/');
+        if ($dir === '' || $dir === '.' || $dir === '/') $dir = '/admin';
+        return $dir;
+    }
+}
+$qmAdminBase = qm_admin_base_path();
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="<?php echo e($qmAdminBase); ?>/">
     <title><?php echo e($adminPageTitle); ?> - 轻墨 · 后台</title>
     <link rel="stylesheet" href="../assets/style.css">
 </head>
