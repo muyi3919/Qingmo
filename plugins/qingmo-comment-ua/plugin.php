@@ -120,6 +120,57 @@ function qm_ua_on_submit($comment, $post) {
     return $comment;
 }
 
+/* ---------- 1.5 Font Awesome（可选，CDN 加载） ---------- */
+add_action('qm_head', 'qm_ua_head');
+function qm_ua_head($ctx = null) {
+    if ((int)qm_ua_config('fa_cdn', 1) !== 1) return;
+    echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css" crossorigin="anonymous">' . "\n";
+}
+
+/**
+ * 系统 → Font Awesome 图标类
+ */
+function qm_ua_os_icon($os) {
+    $os = (string)$os;
+    if (stripos($os, 'Windows') === 0) return 'fa-brands fa-windows';
+    if (stripos($os, 'macOS') === 0 || stripos($os, 'iOS') === 0) return 'fa-brands fa-apple';
+    if (stripos($os, 'Android') === 0) return 'fa-brands fa-android';
+    if (stripos($os, 'Ubuntu') === 0) return 'fa-brands fa-ubuntu';
+    if (stripos($os, 'Linux') === 0 || stripos($os, 'FreeBSD') === 0) return 'fa-brands fa-linux';
+    if (stripos($os, 'ChromeOS') === 0) return 'fa-brands fa-chrome';
+    if (stripos($os, 'HarmonyOS') === 0) return 'fa-solid fa-mobile-screen-button';
+    return 'fa-solid fa-desktop';
+}
+
+/**
+ * 浏览器 → Font Awesome 图标类
+ */
+function qm_ua_browser_icon($browser) {
+    $b = (string)$browser;
+    $map = [
+        'Chrome'        => 'fa-brands fa-chrome',
+        'Edge'          => 'fa-brands fa-edge',
+        'Firefox'       => 'fa-brands fa-firefox-browser',
+        'Safari'        => 'fa-brands fa-safari',
+        'Opera'         => 'fa-brands fa-opera',
+        'IE'            => 'fa-brands fa-internet-explorer',
+        '微信内置浏览器' => 'fa-brands fa-weixin',
+        'QQ 浏览器'      => 'fa-brands fa-qq',
+        '三星浏览器'     => 'fa-solid fa-mobile-screen-button',
+        'UC 浏览器'      => 'fa-solid fa-mobile-screen-button',
+        '夸克浏览器'     => 'fa-solid fa-mobile-screen-button',
+        '华为浏览器'     => 'fa-solid fa-mobile-screen-button',
+        'OPPO 浏览器'    => 'fa-solid fa-mobile-screen-button',
+        '小米浏览器'     => 'fa-solid fa-mobile-screen-button',
+        'vivo 浏览器'    => 'fa-solid fa-mobile-screen-button',
+        'curl'          => 'fa-solid fa-terminal',
+        'Python'        => 'fa-brands fa-python',
+    ];
+    if (isset($map[$b])) return $map[$b];
+    if (stripos($b, '浏览器') !== false) return 'fa-solid fa-globe';
+    return 'fa-solid fa-globe';
+}
+
 /* ---------- 2. 渲染设备徽标 ---------- */
 add_action('qm_comment_meta', 'qm_ua_render');
 function qm_ua_render($comment) {
@@ -130,14 +181,26 @@ function qm_ua_render($comment) {
     $device  = trim((string)($comment['ua_device'] ?? ''));
     if ($os === '' && $browser === '') return;
 
-    $icon = '💻';
-    if ($device === '手机') $icon = '📱';
-    elseif ($device === '平板') $icon = '📲';
-    elseif ($device === '机器人') $icon = '🤖';
+    $useFa = ((int)qm_ua_config('fa_cdn', 1) === 1) && ((int)qm_ua_config('fa_icons', 1) === 1);
 
-    $label = $os !== '' ? $os : '未知系统';
-    if ($browser !== '') {
-        $label .= ' · ' . $browser . ($ver !== '' ? ' ' . $ver : '');
+    $label = '';
+    if ($useFa) {
+        $icons = '';
+        if ($os !== '') {
+            $icons .= '<i class="' . qm_ua_os_icon($os) . '" aria-hidden="true"></i>';
+        }
+        if ($browser !== '') {
+            $icons .= '<i class="' . qm_ua_browser_icon($browser) . '" aria-hidden="true" style="margin-left:4px;"></i>';
+        }
+        $label = $icons . ' ' . e(($os !== '' ? $os : '未知系统')
+            . ($browser !== '' ? ' · ' . $browser . ($ver !== '' ? ' ' . $ver : '') : ''));
+    } else {
+        $icon = '💻';
+        if ($device === '手机') $icon = '📱';
+        elseif ($device === '平板') $icon = '📲';
+        elseif ($device === '机器人') $icon = '🤖';
+        $label = $icon . ' ' . e(($os !== '' ? $os : '未知系统')
+            . ($browser !== '' ? ' · ' . $browser . ($ver !== '' ? ' ' . $ver : '') : ''));
     }
 
     $raw = (string)($comment['ua_raw'] ?? '');
@@ -147,5 +210,5 @@ function qm_ua_render($comment) {
 
     echo '<span class="qm-comment-ua"' . $title . ' style="display:inline-block;margin:2px 0;font-size:12px;'
         . 'color:#5b6b7c;background:rgba(120,200,160,.16);border-radius:4px;padding:0 6px;'
-        . ($title !== '' ? 'cursor:help;' : '') . '">' . $icon . ' ' . e($label) . '</span>';
+        . ($title !== '' ? 'cursor:help;' : '') . '">' . $label . '</span>';
 }

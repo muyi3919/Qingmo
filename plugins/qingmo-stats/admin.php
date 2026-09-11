@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_stats'])) {
             'count_admin' => (int)($_POST['count_admin'] ?? 0),
             'sidebar'     => (int)($_POST['sidebar'] ?? 0),
             'keep_days'   => max(7, (int)($_POST['keep_days'] ?? 120)),
+            'ip_mode'     => ($_POST['ip_mode'] ?? 'hash') === 'raw' ? 'raw' : 'hash',
         ]]));
         $ok = '设置已保存。';
     }
@@ -152,7 +153,7 @@ $sumBr  = array_sum($brTop) ?: 1;
 <h3 style="margin-top:22px;">最近访问（最新 20 条）</h3>
 <?php if ($recent): ?>
     <table class="admin-table">
-        <tr><th>时间</th><th>页面</th><th>系统</th><th>浏览器</th><th>来源</th><th>访客</th></tr>
+        <tr><th>时间</th><th>页面</th><th>系统</th><th>浏览器</th><th>来源</th><th>访客</th><?php if (($config['ip_mode'] ?? 'hash') === 'raw'): ?><th>IP</th><?php endif; ?></tr>
         <?php foreach ($recent as $r): ?>
         <tr>
             <td><?php echo format_date($r['t'] ?? 0); ?></td>
@@ -161,6 +162,9 @@ $sumBr  = array_sum($brTop) ?: 1;
             <td><?php echo e($r['browser'] ?? ''); ?></td>
             <td><?php echo e($r['ref'] ?? ''); ?></td>
             <td style="color:#aaa;font-size:12px;">#<?php echo e($r['visitor'] ?? ''); ?></td>
+            <?php if (($config['ip_mode'] ?? 'hash') === 'raw'): ?>
+            <td style="font-size:12px;"><?php echo e($r['ip'] ?? '—'); ?></td>
+            <?php endif; ?>
         </tr>
         <?php endforeach; ?>
     </table>
@@ -187,6 +191,13 @@ $sumBr  = array_sum($brTop) ?: 1;
         <option value="1" <?php echo ($config['sidebar'] ?? 1) == 1 ? 'selected' : ''; ?>>显示</option>
         <option value="0" <?php echo ($config['sidebar'] ?? 1) == 0 ? 'selected' : ''; ?>>不显示</option>
     </select>
+
+    <label>访客 IP 保存方式</label>
+    <select name="ip_mode">
+        <option value="hash" <?php echo ($config['ip_mode'] ?? 'hash') === 'hash' ? 'selected' : ''; ?>>不保存原始 IP（仅哈希去重，推荐）</option>
+        <option value="raw" <?php echo ($config['ip_mode'] ?? 'hash') === 'raw' ? 'selected' : ''; ?>>保存原始 IP（最近访问里显示完整 IP，便于排查）</option>
+    </select>
+    <p style="font-size:12px;color:#888;margin:2px 0 0;">UV 去重始终用哈希，不受此设置影响；选「保存原始 IP」时，最近访问记录会额外存下访客 IP（最多保留 60 条）。</p>
 
     <label>数据保留天数</label>
     <input type="number" name="keep_days" min="7" max="3650" value="<?php echo (int)($config['keep_days'] ?? 120); ?>">

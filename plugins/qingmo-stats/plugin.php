@@ -107,10 +107,15 @@ function qm_stats_track() {
     // ---- 最近访问 ----
     $path = 'index.php?page=' . $page;
     if ($page === 'post' && $pid > 0) $path .= '&id=' . $pid;
-    array_unshift($data['recent'], [
+    $entry = [
         't' => $now, 'path' => $path, 'os' => $osName, 'browser' => $brName,
         'ref' => $refKey, 'visitor' => $visitor,
-    ]);
+    ];
+    // IP 保存方式：hash（默认，仅哈希去重） / raw（额外记录原始 IP，便于排查）
+    if ((string)qm_stats_cfg('ip_mode', 'hash') === 'raw' && $ip !== '') {
+        $entry['ip'] = $ip;
+    }
+    array_unshift($data['recent'], $entry);
     if (count($data['recent']) > 60) $data['recent'] = array_slice($data['recent'], 0, 60);
 
     // ---- 清理过期数据 ----

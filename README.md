@@ -2,8 +2,17 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.8.0-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.8.1-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.8.1
+
+- **评论设备信息接入 Font Awesome**：系统与浏览器显示为图标（Windows/Apple/Android/Linux/Chrome/Edge/Firefox/Safari/微信/QQ…），插件按需从 jsDelivr 加载 FA 6 样式表；可切换回 emoji 图标，也可关闭 CDN（主题自带 FA 时）。
+- **留言板支持回复（楼中楼）**：每条留言可「↩ 回复」，回复挂在父留言下、默认折叠，点「展开回复(N 条)」查看；回复对象会校验是否存在且已通过审核；后台删除父留言会级联删除其全部回复。
+- **访问统计新增 IP 保存选项**：可选「不保存原始 IP（仅哈希去重，默认）」或「保存原始 IP」（开启后最近访问显示完整 IP，UV 去重始终用哈希）。
+- **侧栏精简**：移除侧栏「链接」小部件（原先含 首页 / 留言板 / 友情链接 / 后台登录 四项），导航栏与页脚入口不受影响。
 
 ---
 

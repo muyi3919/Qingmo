@@ -365,9 +365,20 @@ switch ($page) {
             $gEmail = trim($_POST['author_email'] ?? '');
             $gUrl = trim($_POST['author_url'] ?? '');
             $gContent = trim($_POST['content'] ?? '');
+            $gParent = (int)($_POST['parent_id'] ?? 0);
+
+            // 回复对象必须存在且已通过审核
+            $gParentValid = ($gParent === 0);
+            if (!$gParentValid) {
+                foreach (load_messages(1) as $pm) {
+                    if ((int)$pm['id'] === $gParent) { $gParentValid = true; break; }
+                }
+            }
 
             if ($gName === '' || $gEmail === '' || $gContent === '') {
                 $gbMsg = '请填写昵称、邮箱和留言内容。';
+            } elseif (!$gParentValid) {
+                $gbMsg = '要回复的留言不存在或尚未通过审核。';
             } elseif (strlen($gContent) > 20000 || strlen($gName) > 200 || strlen($gUrl) > 2048) {
                 $gbMsg = '留言内容或个人资料过长。';
             } elseif ($gUrl !== '' && !preg_match('#^https?://#i', $gUrl)) {
@@ -379,6 +390,7 @@ switch ($page) {
             } else {
                 $gStatus = get_setting('comment_moderation', '0') == '1' ? 0 : 1;
                 $newMessage = [
+                    'parent_id' => $gParent > 0 ? $gParent : 0,
                     'author_name' => $gName,
                     'author_email' => $gEmail,
                     'author_url' => $gUrl,
@@ -440,6 +452,42 @@ switch ($page) {
             var form = document.getElementById('commentForm');
             if (!form) return;
             var contentInput = document.getElementById('commentContent');
+            var parentId = document.getElementById('commentParentId');
+            var title = document.getElementById('commentFormTitle');
+            var cancelBtn = document.getElementById('commentCancelReply');
+            var replyToName = '';
+
+            // 回复某条留言：写入 parent_id 并滚动到表单
+            document.addEventListener('click', function (e) {
+                var btn = e.target && e.target.closest ? e.target.closest('.reply-btn') : null;
+                if (!btn) return;
+                parentId.value = btn.getAttribute('data-id');
+                replyToName = btn.getAttribute('data-name') || '';
+                title.textContent = '回复 @' + replyToName;
+                cancelBtn.style.display = 'inline-block';
+                document.getElementById('commentFormBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                contentInput.focus();
+            });
+            cancelBtn.addEventListener('click', function () {
+                parentId.value = '0';
+                replyToName = '';
+                title.textContent = '写留言';
+                cancelBtn.style.display = 'none';
+            });
+
+            // 展开/收起某条留言的回复
+            document.addEventListener('click', function (e) {
+                var btn = e.target && e.target.closest ? e.target.closest('.qm-replies-toggle') : null;
+                if (!btn) return;
+                var box = document.getElementById(btn.getAttribute('data-target'));
+                if (!box) return;
+                var isOpen = box.style.display !== 'none';
+                box.style.display = isOpen ? 'none' : '';
+                btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+                var n = btn.getAttribute('data-count') || '';
+                btn.textContent = isOpen ? ('展开回复（' + n + ' 条）') : '收起回复';
+            });
+
             var tips = <?php echo json_encode(array_map(function ($t) { return $t . '（支持md格式哦）'; }, qm_comment_tips()), JSON_UNESCAPED_UNICODE); ?>;
             if (contentInput && tips.length) {
                 contentInput.addEventListener('focus', function () {

@@ -16,6 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             qm_ua_save(['config' => [
                 'show_raw'  => (int)($_POST['show_raw'] ?? 0),
                 'store_raw' => (int)($_POST['store_raw'] ?? 0),
+                'fa_cdn'    => (int)($_POST['fa_cdn'] ?? 0),
+                'fa_icons'  => (int)($_POST['fa_icons'] ?? 0),
             ]]);
             $ok = '设置已保存。';
         }
@@ -44,6 +46,19 @@ $myUa = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
 
 <form method="post" class="admin-form" style="max-width:560px;">
     <?php csrf_field(); ?>
+    <label>系统 / 浏览器图标</label>
+    <select name="fa_icons">
+        <option value="1" <?php echo ($config['fa_icons'] ?? 1) == 1 ? 'selected' : ''; ?>>Font Awesome 图标（如 <i class="fa-brands fa-chrome"></i> / <i class="fa-brands fa-windows"></i>）</option>
+        <option value="0" <?php echo ($config['fa_icons'] ?? 1) == 0 ? 'selected' : ''; ?>>用 emoji（💻 📱 🤖）</option>
+    </select>
+
+    <label>Font Awesome 样式表</label>
+    <select name="fa_cdn">
+        <option value="1" <?php echo ($config['fa_cdn'] ?? 1) == 1 ? 'selected' : ''; ?>>由本插件从 CDN 加载（jsdelivr，需访客能联网）</option>
+        <option value="0" <?php echo ($config['fa_cdn'] ?? 1) == 0 ? 'selected' : ''; ?>>不加载（主题/自己已引入 FA，或想用 emoji 图标）</option>
+    </select>
+    <p style="font-size:12px;color:#888;margin:2px 0 0;">关闭 CDN 时会自动退回 emoji 图标，不影响功能。</p>
+
     <label>悬停显示原始 UA</label>
     <select name="show_raw">
         <option value="1" <?php echo ($config['show_raw'] ?? 1) == 1 ? 'selected' : ''; ?>>显示（鼠标悬停徽标可见完整 UA）</option>

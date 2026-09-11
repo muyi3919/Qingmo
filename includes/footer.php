@@ -29,16 +29,6 @@
             <?php endforeach; ?>
             </ul>
         </div>
-        <div class="box">
-            <h3>链接</h3>
-            <ul>
-                <li><a href="index.php">首页</a></li>
-                <li><a href="index.php?page=guestbook">留言板</a></li>
-                <li><a href="index.php?page=links">友情链接</a></li>
-                <li><a href="admin/login.php">后台登录</a></li>
-                <?php do_action('qm_sidebar_links'); ?>
-            </ul>
-        </div>
         <?php
         // 友链小部件（有数据才显示；排序：名称 / 随机）
         $sidebarLinks = array_slice(get_links_ordered(), 0, 10);
