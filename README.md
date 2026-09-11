@@ -2,8 +2,14 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.8.1-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.8.2-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.8.2
+
+- **修复后台入口 404**：访问 `/admin`（末尾没有斜杠）时，未登录跳转用的是相对路径 `login.php`，浏览器会解析到站点根目录的 `/login.php` 而 404。现改为按当前脚本目录生成绝对路径（`/admin/login.php`），`/admin`、`/admin/`、`/admin/index.php` 均可正常进入；后台「退出登录」跳转同步修正。
 
 ---
 

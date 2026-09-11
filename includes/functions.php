@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.8.1');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.8.2');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -584,11 +584,21 @@ function is_logged_in() {
 }
 
 /**
+ * 后台登录页地址（绝对路径，避免 /admin 无尾斜杠时相对跳转跑到 /login.php）
+ */
+function qm_admin_login_url() {
+    $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php'));
+    $dir = rtrim(dirname($script), '/');
+    if ($dir === '' || $dir === '.' || $dir === '/') $dir = '/admin';
+    return $dir . '/login.php';
+}
+
+/**
  * 要求登录
  */
 function require_login() {
     if (!is_logged_in()) {
-        header('Location: login.php');
+        header('Location: ' . qm_admin_login_url());
         exit;
     }
 }

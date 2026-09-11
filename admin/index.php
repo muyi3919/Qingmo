@@ -12,7 +12,7 @@ if (!defined('QM_ADMIN_LOADED')) {
 if (isset($_GET['logout'])) {
     $_SESSION = [];
     session_destroy();
-    header('Location: login.php');
+    header('Location: ' . qm_admin_login_url());
     exit;
 }
 
