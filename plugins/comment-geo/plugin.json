@@ -1,6 +1,6 @@
 {
     "name": "评论归属地",
-    "description": "轻墨版 Easy Location：记录评论者 IP，在线查询归属地（ip-api.com，结果本地缓存），每条评论旁显示「来自 XX」；可在设置里关闭联网。",
-    "version": "1.0.0",
+    "description": "轻墨版 Easy Location：记录评论者 IP，在线查询归属地（ip-api.com，结果本地缓存），每条评论旁显示「📍 国旗 国家 地区 城市」（不显示运营商）；可在设置里关闭联网。",
+    "version": "1.1.0",
     "author": "Qingmo"
 }

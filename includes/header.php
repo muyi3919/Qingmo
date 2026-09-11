@@ -42,6 +42,7 @@
         <nav class="nav">
             <a href="index.php">首页</a><span class="nav-sep">|</span>
             <a href="index.php?page=archive">文章归档</a><span class="nav-sep">|</span>
+            <a href="index.php?page=guestbook">留言板</a><span class="nav-sep">|</span>
             <a href="index.php?page=links">友链</a><span class="nav-sep">|</span>
             <a href="index.php?page=about">关于</a>
             <?php if (is_logged_in()): ?>

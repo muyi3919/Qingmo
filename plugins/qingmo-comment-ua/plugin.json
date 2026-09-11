@@ -1,0 +1,6 @@
+{
+    "name": "评论设备信息",
+    "description": "记录评论者的 User-Agent 并识别系统与浏览器版本，每条评论旁显示「💻 Windows 10/11 · Chrome 120」徽标；鼠标悬停可看原始 UA。",
+    "version": "1.0.0",
+    "author": "Qingmo"
+}

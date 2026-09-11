@@ -6,7 +6,7 @@
 
 if (!defined('QM_BOOT')) {
     define('QM_BOOT', true);
-    define('QM_VERSION', '2.7.1');                // 系统版本号（在线更新比对用）
+    define('QM_VERSION', '2.8.0');                // 系统版本号（在线更新比对用）
     define('ROOT_DIR', dirname(__DIR__));          // 站点根目录
     define('INCLUDES_DIR', __DIR__);               // includes/
     define('DATA_DIR', ROOT_DIR . '/data');
@@ -51,6 +51,9 @@ require_once __DIR__ . '/mailer.php';
 
 // 评论表情包（内置默认组 + qm_emotion_list 过滤器）
 require_once __DIR__ . '/emotions.php';
+
+// 留言板（独立数据 + 复用评论的校验/渲染/插件钩子）
+require_once __DIR__ . '/guestbook.php';
 
 // ---------- 钩子系统（动作 + 过滤器） ----------
 if (empty($GLOBALS['_qm_hooks'])) {
@@ -1317,4 +1320,35 @@ function qm_render_archive_groups_html() {
     if ($cur !== null) $html .= "</ul>\n";
     if (!$posts) $html .= '<p>还没有文章。</p>';
     return ['total' => count($posts), 'html' => $html];
+}
+
+/**
+ * 评论/留言框的随机占位俏皮话（前台随机取一句，末尾统一加「支持md格式哦」）
+ */
+function qm_comment_tips() {
+    return [
+        '前方高能，请文明发言~',
+        '来了来了，前排围观',
+        '妙啊，说点什么好呢',
+        '一键三连了吗？没有就评论吧',
+        '这波不亏，先评为敬',
+        '报告！发现一枚小可爱',
+        '弹幕护体，友善发言',
+        '活捉一只野生评论员',
+        '教练，我想学这个！',
+        '评论区人均大佬，怕了怕了',
+        '今天也在认真水评论呢',
+        '让我康康是谁在评论',
+        '本评论区由你守护',
+        '文化人说话就是不一样',
+        '别潜水啦，出来冒个泡',
+    ];
+}
+
+/**
+ * 取一条随机占位提示（含「（支持md格式哦）」后缀）
+ */
+function qm_random_comment_tip() {
+    $tips = qm_comment_tips();
+    return $tips[array_rand($tips)] . '（支持md格式哦）';
 }

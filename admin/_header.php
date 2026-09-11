@@ -7,6 +7,7 @@ $qmMenu = [
     'posts'      => ['文章管理'],
     'categories' => ['分类管理'],
     'comments'   => ['评论管理'],
+    'messages'   => ['留言板管理'],
     'links'      => ['友链'],
     'themes'     => ['主题市场'],
     'plugins'    => ['插件市场'],

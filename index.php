@@ -25,6 +25,13 @@ if ($page === 'ajax') {
             $inner .= $n > 0 ? qm_render_comment_items($ct, $n) : '<p class="comment-empty">还没有评论，来抢沙发吧~</p>' . "\n";
             $out = ['ok' => true, 'count' => $n, 'html' => $inner];
         }
+    } elseif ($act === 'messages') {
+        // 留言板免刷新
+        $msgs = load_messages(1);
+        $n = count($msgs);
+        $inner = '<h3>全部留言 (' . $n . ')</h3>' . "\n";
+        $inner .= $n > 0 ? qm_render_message_items($msgs) : '<p class="comment-empty">还没有留言，来写第一条吧~</p>' . "\n";
+        $out = ['ok' => true, 'count' => $n, 'html' => $inner];
     } elseif ($act === 'posts') {
         $route = (($_GET['route'] ?? 'home') === 'archive') ? 'archive' : 'home';
         if ($route === 'archive') {
@@ -220,24 +227,8 @@ switch ($page) {
                 if (is_array($g)) $qmGuest = $g + $qmGuest;
             }
             // B站风格随机俏皮话（评论框占位提示，每次聚焦随机换一句）
-            $qmCommentTips = [
-                '前方高能，请文明发言~',
-                '来了来了，前排围观',
-                '妙啊，说点什么好呢',
-                '一键三连了吗？没有就评论吧',
-                '这波不亏，先评为敬',
-                '报告！发现一枚小可爱',
-                '弹幕护体，友善发言',
-                '活捉一只野生评论员',
-                '教练，我想学这个！',
-                '评论区人均大佬，怕了怕了',
-                '今天也在认真水评论呢',
-                '让我康康是谁在评论',
-                '本评论区由你守护',
-                '文化人说话就是不一样',
-                '别潜水啦，出来冒个泡',
-            ];
-            $qmCommentTip = $qmCommentTips[array_rand($qmCommentTips)] . '（支持md格式哦）';
+            $qmCommentTips = qm_comment_tips();
+            $qmCommentTip = qm_random_comment_tip();
             ?>
             <div class="comment-form" id="commentFormBox">
                 <h4 id="commentFormTitle">发表评论</h4>
@@ -360,6 +351,145 @@ switch ($page) {
                     ? '展开回复（' + (btn.getAttribute('data-count') || '') + ' 条）'
                     : '收起回复';
             });
+        })();
+        </script>
+        <?php
+        include 'includes/footer.php';
+        break;
+
+    case 'guestbook':
+        // ===== 留言板（独立数据，复用评论的校验/表情/Markdown/插件钩子）=====
+        $gbMsg = '';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $gName = trim($_POST['author_name'] ?? '');
+            $gEmail = trim($_POST['author_email'] ?? '');
+            $gUrl = trim($_POST['author_url'] ?? '');
+            $gContent = trim($_POST['content'] ?? '');
+
+            if ($gName === '' || $gEmail === '' || $gContent === '') {
+                $gbMsg = '请填写昵称、邮箱和留言内容。';
+            } elseif (strlen($gContent) > 20000 || strlen($gName) > 200 || strlen($gUrl) > 2048) {
+                $gbMsg = '留言内容或个人资料过长。';
+            } elseif ($gUrl !== '' && !preg_match('#^https?://#i', $gUrl)) {
+                $gbMsg = '个人主页必须使用 http:// 或 https://。';
+            } elseif (!filter_var($gEmail, FILTER_VALIDATE_EMAIL)) {
+                $gbMsg = '邮箱格式不正确。';
+            } elseif (!verify_csrf($_POST['csrf_token'] ?? '')) {
+                $gbMsg = '安全验证失败，请刷新页面重试。';
+            } else {
+                $gStatus = get_setting('comment_moderation', '0') == '1' ? 0 : 1;
+                $newMessage = [
+                    'author_name' => $gName,
+                    'author_email' => $gEmail,
+                    'author_url' => $gUrl,
+                    'content' => $gContent,
+                    'status' => $gStatus,
+                ];
+                // 插件扩展点：归属地/设备信息补字段，反垃圾可拦截（与评论同一套钩子）
+                $newMessage = apply_filters('qm_comment_data', $newMessage, ['id' => 0, 'title' => '留言板']);
+                if ($newMessage === false) {
+                    $reject = $GLOBALS['qm_comment_error'] ?? '留言未通过校验，请检查后重试。';
+                    $_SESSION['flash_msg'] = $reject;
+                    header('Location: index.php?page=guestbook');
+                    exit;
+                }
+                if (add_message($newMessage) === false) {
+                    $_SESSION['flash_msg'] = '留言保存失败：data 目录无写入权限，请联系管理员检查文件权限。';
+                    header('Location: index.php?page=guestbook');
+                    exit;
+                }
+                qm_notify_new_message($newMessage);
+                $guestProfile = base64_encode(json_encode(['n' => $gName, 'e' => $gEmail, 'u' => $gUrl], JSON_UNESCAPED_UNICODE));
+                @setcookie('qm_guest', $guestProfile, time() + 31536000, '/', '', false, true);
+                $_SESSION['flash_msg'] = $gStatus ? '留言发布成功！' : '留言已提交，等待审核。';
+                header('Location: index.php?page=guestbook');
+                exit;
+            }
+        }
+        if (isset($_SESSION['flash_msg'])) {
+            $gbMsg = (string)$_SESSION['flash_msg'];
+            unset($_SESSION['flash_msg']);
+        }
+
+        $pageTitle = '留言板';
+        $messages = load_messages(1);
+        include 'includes/header.php';
+        ?>
+        <div class="post-content">
+            <h1>留言板</h1>
+            <div class="content" style="font-size:14px;color:#666;">
+                这里是留言板：想说什么都可以，支持 Markdown、表情包与图片。共 <?php echo count($messages); ?> 条留言。
+            </div>
+        </div>
+
+        <div class="comment-list">
+            <div id="qmGuestbookArea" data-count="<?php echo count($messages); ?>">
+            <h3>全部留言 (<?php echo count($messages); ?>)</h3>
+            <?php if ($gbMsg): ?>
+                <div class="msg <?php echo (strpos($gbMsg, '成功') !== false || strpos($gbMsg, '审核') !== false) ? 'success' : 'error'; ?>">
+                    <?php echo e($gbMsg); ?>
+                </div>
+            <?php endif; ?>
+            <?php echo $messages ? qm_render_message_items($messages) : '<p class="comment-empty">还没有留言，来写第一条吧~</p>'; ?>
+            </div>
+            <?php echo qm_guestbook_form_html(); ?>
+        </div>
+
+        <script>
+        (function () {
+            var form = document.getElementById('commentForm');
+            if (!form) return;
+            var contentInput = document.getElementById('commentContent');
+            var tips = <?php echo json_encode(array_map(function ($t) { return $t . '（支持md格式哦）'; }, qm_comment_tips()), JSON_UNESCAPED_UNICODE); ?>;
+            if (contentInput && tips.length) {
+                contentInput.addEventListener('focus', function () {
+                    var cur = contentInput.placeholder || '';
+                    var next = tips[Math.floor(Math.random() * tips.length)];
+                    if (cur === next && tips.length > 1) next = tips[(tips.indexOf(next) + 1) % tips.length];
+                    contentInput.placeholder = next;
+                });
+            }
+            var toggle = document.getElementById('emotionToggle');
+            var panel = document.getElementById('emotionPanel');
+            if (toggle && panel) {
+                toggle.addEventListener('click', function () {
+                    var hidden = panel.style.display === 'none';
+                    panel.style.display = hidden ? '' : 'none';
+                    toggle.setAttribute('aria-expanded', hidden ? 'true' : 'false');
+                });
+                panel.addEventListener('click', function (e) {
+                    var btn = e.target.closest ? e.target.closest('button.em') : null;
+                    if (!btn) return;
+                    var ins = btn.getAttribute('data-kind') === 'sticker'
+                        ? ':' + btn.getAttribute('data-code') + ':'
+                        : btn.getAttribute('data-val');
+                    if (ins == null) return;
+                    var s = contentInput.selectionStart, end = contentInput.selectionEnd;
+                    var v = contentInput.value;
+                    contentInput.value = v.slice(0, s) + ins + v.slice(end);
+                    contentInput.focus();
+                    contentInput.setSelectionRange(s + ins.length, s + ins.length);
+                });
+                var tabs = panel.querySelectorAll('.emotion-tab');
+                var pages = panel.querySelectorAll('.emotion-page');
+                if (tabs.length > 1) {
+                    tabs.forEach(function (tab) {
+                        tab.addEventListener('click', function () {
+                            var g = tab.getAttribute('data-group');
+                            tabs.forEach(function (t) {
+                                var on = t.getAttribute('data-group') === g;
+                                t.style.borderColor = on ? '#3a3a3a' : '#d8d8d8';
+                                t.style.background = on ? '#3a3a3a' : '#fff';
+                                t.style.color = on ? '#fff' : '#777';
+                                t.setAttribute('aria-selected', on ? 'true' : 'false');
+                            });
+                            pages.forEach(function (p) {
+                                p.style.display = p.getAttribute('data-group') === g ? 'flex' : 'none';
+                            });
+                        });
+                    });
+                }
+            }
         })();
         </script>
         <?php

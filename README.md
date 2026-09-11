@@ -2,8 +2,17 @@
 
 > 一个轻量纯粹的纯文件博客系统。无数据库、无框架，解压即用。
 
-[![Version](https://img.shields.io/badge/version-2.7.1-blue)](https://github.com/muyi3919/Qingmo)
+[![Version](https://img.shields.io/badge/version-2.8.0-blue)](https://github.com/muyi3919/Qingmo)
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/muyi3919/Qingmo/blob/main/LICENSE)
+
+---
+
+## 更新日志 v2.8.0
+
+- **留言板**：新增独立页面 `index.php?page=guestbook`（导航与侧栏都有入口），留言存在独立的 `data/messages.php`，与评论互不干扰；支持 Markdown、表情包、图片与免刷新（每 15 秒自动上屏）；后台新增「留言板管理」可审核/删除。留言同样经过 `qm_comment_data` / `qm_comment_meta` 钩子，所以归属地、设备信息、反垃圾插件对留言一并生效。
+- **评论归属地 v1.1**：徽标只显示「📍 国旗 国家 地区 城市」，**不再显示运营商**（查询字段也去掉了 ISP）。
+- **新插件「评论设备信息」**：解析并展示系统与浏览器版本（如 `💻 Windows 10/11 · Chrome 120`，手机显示 📱、爬虫 🤖），悬停可看原始 UA；可设置是否保存原始 UA。
+- **新插件「访问统计」**：PV/UV、今日/昨日/近 30 天趋势图、访问来源 Top、热门文章 Top、系统与浏览器占比、在线人数、最近访问明细；可选侧栏「站点统计」小部件；**不保存原始 IP**（仅用哈希去重），默认不统计管理员自己。
 
 ---
 

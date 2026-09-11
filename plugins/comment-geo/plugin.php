@@ -28,7 +28,7 @@ function qm_geo_lookup($ip) {
         return null; // 本地地址没有归属地
     }
     $url = 'http://ip-api.com/json/' . rawurlencode($ip)
-        . '?fields=status,country,countryCode,regionName,city,isp&lang=zh-CN';
+        . '?fields=status,country,countryCode,regionName,city&lang=zh-CN';
     $ctx = stream_context_create(['http' => ['timeout' => 3, 'ignore_errors' => true]]);
     $body = @file_get_contents($url, false, $ctx);
     if ($body === false) return null;
@@ -39,7 +39,6 @@ function qm_geo_lookup($ip) {
         'cc'      => strtoupper((string)($json['countryCode'] ?? '')),
         'region'  => (string)($json['regionName'] ?? ''),
         'city'    => (string)($json['city'] ?? ''),
-        'isp'     => (string)($json['isp'] ?? ''),
     ];
 }
 
@@ -89,22 +88,22 @@ function qm_geo_on_submit($comment, $post) {
         $comment['geo_cc']      = $geo['cc'] ?? '';
         $comment['geo_region']  = $geo['region'] ?? '';
         $comment['geo_city']    = $geo['city'] ?? '';
-        $comment['geo_isp']     = $geo['isp'] ?? '';
+        // v1.1 起不再记录/展示运营商
+        unset($comment['geo_isp']);
     }
     return $comment;
 }
 
-/* ---------- 2. 渲染归属地徽标 ---------- */
+/* ---------- 2. 渲染归属地徽标（国家 · 地区 · 城市，不含运营商） ---------- */
 add_action('qm_comment_meta', 'qm_geo_render');
 function qm_geo_render($comment) {
     if (!is_array($comment)) return;
 
-    // 优先用地区信息（含国旗与运营商），无结果再退 IP 前缀
+    // 优先用地区信息（国旗 + 国家/地区/城市），无结果再退 IP 前缀
     $cc    = strtoupper((string)($comment['geo_cc'] ?? ''));
     $country = trim((string)($comment['geo_country'] ?? ''));
     $region  = trim((string)($comment['geo_region'] ?? ''));
     $city    = trim((string)($comment['geo_city'] ?? ''));
-    $isp     = trim((string)($comment['geo_isp'] ?? ''));
 
     $label = '';
     if ($country !== '' || $region !== '' || $city !== '') {
@@ -115,7 +114,6 @@ function qm_geo_render($comment) {
         if ($region !== '' && $region !== $country) $bits[] = $region;
         if ($city !== '' && $city !== $region) $bits[] = $city;
         $label = implode(' ', $bits);
-        if ($isp !== '') $label .= ' · ' . $isp;
     }
 
     if ($label === '' && (int)qm_geo_config('ip_fallback', 1) === 1) {

@@ -33,6 +33,7 @@
             <h3>链接</h3>
             <ul>
                 <li><a href="index.php">首页</a></li>
+                <li><a href="index.php?page=guestbook">留言板</a></li>
                 <li><a href="index.php?page=links">友情链接</a></li>
                 <li><a href="admin/login.php">后台登录</a></li>
                 <?php do_action('qm_sidebar_links'); ?>
@@ -133,6 +134,25 @@
             });
         }
         setInterval(refreshComments, 12000);
+    }
+
+    // ---------- 留言板新留言自动上屏 ----------
+    var gbArea = document.getElementById('qmGuestbookArea');
+    if (gbArea) {
+        var gbLast = parseInt(gbArea.getAttribute('data-count') || '0', 10);
+        var gbBusy = false;
+        function refreshGuestbook() {
+            if (gbBusy) return;
+            gbBusy = true;
+            poll('index.php?page=ajax&act=messages', function (d) {
+                gbBusy = false;
+                if (typeof d.count === 'number' && d.count !== gbLast && typeof d.html === 'string') {
+                    gbArea.innerHTML = d.html;
+                    gbLast = d.count;
+                }
+            });
+        }
+        setInterval(refreshGuestbook, 15000);
     }
 
     // ---------- 新文章自动上屏（首页/归档第 1 页内） ----------
